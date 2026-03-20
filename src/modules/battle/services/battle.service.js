@@ -24,7 +24,7 @@ const createBattlePokemon = (pokemon) => ({
 
 const getActivePokemon = (player) => player.team[player.activePokemonIndex] ?? null;
 
-const normalizeBattleStartPayload = (battle) => ({
+export const normalizeBattleStatePayload = (battle) => ({
   battleId: battle.id,
   lobbyId: String(battle.lobbyId),
   status: battle.status,
@@ -68,7 +68,7 @@ export const startBattle = async ({ lobbyId }) => {
   const existingBattle = await findBattleByLobbyId(lobby.id);
 
   if (existingBattle && existingBattle.status !== BATTLE_STATUS.FINISHED) {
-    return normalizeBattleStartPayload(existingBattle);
+    return normalizeBattleStatePayload(existingBattle);
   }
 
   const battlePlayers = await Promise.all(
@@ -116,7 +116,7 @@ export const startBattle = async ({ lobbyId }) => {
   lobby.status = LOBBY_STATUS.BATTLING;
   await saveLobby(lobby);
 
-  return normalizeBattleStartPayload(battle);
+  return normalizeBattleStatePayload(battle);
 };
 
 export const processAttack = async ({ battleId, playerId }) =>

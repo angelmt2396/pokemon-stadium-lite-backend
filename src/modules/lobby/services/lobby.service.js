@@ -1,12 +1,53 @@
+import { BATTLE_STATUS } from '../../../shared/constants/battle-status.js';
 import { AppError } from '../../../shared/errors/AppError.js';
 import { LOBBY_STATUS } from '../../../shared/constants/lobby-status.js';
 import { runSerialized } from '../../../shared/utils/serial-executor.js';
+import { findPlayerById, updatePlayerSocket } from '../../players/repositories/player.repository.js';
 import { registerPlayer } from '../../players/services/player.service.js';
-import { createLobby, findCurrentLobby, findLobbyById, saveLobby } from '../repositories/lobby.repository.js';
+import {
+  createLobby,
+  findCurrentLobby,
+  findLobbyById,
+  findLobbyByPlayerId,
+  findWaitingLobby,
+  saveLobby,
+} from '../repositories/lobby.repository.js';
 import { findBattleByLobbyId } from '../../battle/repositories/battle.repository.js';
-import { startBattle } from '../../battle/services/battle.service.js';
+import { normalizeBattleStatePayload, startBattle } from '../../battle/services/battle.service.js';
 
 const LOBBY_LOCK_KEY = 'single-lobby';
+
+const resolveLobbyForJoin = async () => {
+  const waitingLobby = await findWaitingLobby();
+
+  if (waitingLobby && waitingLobby.players.length < 2) {
+    return waitingLobby;
+  }
+
+  const currentLobby = await findCurrentLobby();
+
+  if (!currentLobby) {
+    return createLobby({
+      status: LOBBY_STATUS.WAITING,
+      players: [],
+    });
+  }
+
+  if (currentLobby.status === LOBBY_STATUS.WAITING) {
+    throw new AppError('Lobby is full', 409);
+  }
+
+  const currentBattle = await findBattleByLobbyId(currentLobby.id);
+
+  if (!currentBattle || currentBattle.status === BATTLE_STATUS.FINISHED) {
+    return createLobby({
+      status: LOBBY_STATUS.WAITING,
+      players: [],
+    });
+  }
+
+  throw new AppError('Lobby is not accepting players', 409);
+};
 
 export const normalizeLobbyStatusPayload = (lobby) => ({
   lobbyId: lobby.id,
@@ -24,22 +65,7 @@ export const normalizeLobbyStatusPayload = (lobby) => ({
 
 export const joinLobby = async ({ nickname, socketId }) =>
   runSerialized(LOBBY_LOCK_KEY, async () => {
-    let lobby = await findCurrentLobby();
-
-    if (!lobby) {
-      lobby = await createLobby({
-        status: LOBBY_STATUS.WAITING,
-        players: [],
-      });
-    }
-
-    if (lobby.status !== LOBBY_STATUS.WAITING) {
-      throw new AppError('Lobby is not accepting players', 409);
-    }
-
-    if (lobby.players.length >= 2) {
-      throw new AppError('Lobby is full', 409);
-    }
+    const lobby = await resolveLobbyForJoin();
 
     const player = await registerPlayer({ nickname, socketId });
 
@@ -57,6 +83,37 @@ export const joinLobby = async ({ nickname, socketId }) =>
       lobbyId: lobby.id,
       status: lobby.status,
       lobbyStatus: normalizeLobbyStatusPayload(lobby),
+    };
+  });
+
+export const reconnectPlayer = async ({ playerId, socketId }) =>
+  runSerialized(LOBBY_LOCK_KEY, async () => {
+    if (!playerId || !socketId) {
+      throw new AppError('playerId and socketId are required', 400);
+    }
+
+    const player = await findPlayerById(playerId);
+
+    if (!player) {
+      throw new AppError('Player not found', 404);
+    }
+
+    const lobby = await findLobbyByPlayerId(player.id);
+
+    if (!lobby) {
+      throw new AppError('Lobby not found for player', 404);
+    }
+
+    const previousSocketId = player.socketId;
+    const updatedPlayer = await updatePlayerSocket(player.id, socketId);
+    const battle = await findBattleByLobbyId(lobby.id);
+
+    return {
+      playerId: updatedPlayer.id,
+      lobbyId: lobby.id,
+      previousSocketId,
+      lobbyStatus: normalizeLobbyStatusPayload(lobby),
+      battleState: battle ? normalizeBattleStatePayload(battle) : null,
     };
   });
 

@@ -8,7 +8,7 @@ let ioInstance;
 export const createSocketServer = (httpServer) => {
   ioInstance = new Server(httpServer, {
     cors: {
-      origin: env.clientOrigin,
+      origin: env.clientOrigins,
     },
   });
 

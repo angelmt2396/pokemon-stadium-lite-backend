@@ -1,6 +1,7 @@
 export const SOCKET_EVENTS = {
   CLIENT: {
     JOIN_LOBBY: 'join_lobby',
+    RECONNECT_PLAYER: 'reconnect_player',
     ASSIGN_POKEMON: 'assign_pokemon',
     READY: 'ready',
     ATTACK: 'attack',

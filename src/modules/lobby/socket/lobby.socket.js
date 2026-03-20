@@ -1,5 +1,6 @@
 import { SOCKET_EVENTS } from '../../../shared/constants/socket-events.js';
-import { joinLobby, markPlayerReady } from '../services/lobby.service.js';
+import { BATTLE_STATUS } from '../../../shared/constants/battle-status.js';
+import { joinLobby, markPlayerReady, reconnectPlayer } from '../services/lobby.service.js';
 import { assignRandomTeam } from '../services/team-assignment.service.js';
 
 const respond = (callback, payload) => {
@@ -18,6 +19,45 @@ export const registerLobbySocketHandlers = (socket, io) => {
 
       socket.join(result.lobbyId);
       io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
+
+      respond(callback, {
+        ok: true,
+        data: result,
+      });
+    } catch (error) {
+      respond(callback, {
+        ok: false,
+        message: error.message,
+      });
+    }
+  });
+
+  socket.on(SOCKET_EVENTS.CLIENT.RECONNECT_PLAYER, async (payload, callback) => {
+    try {
+      const result = await reconnectPlayer({
+        playerId: payload?.playerId,
+        socketId: socket.id,
+      });
+
+      if (result.previousSocketId && result.previousSocketId !== socket.id) {
+        const previousSocket = io.sockets.sockets.get(result.previousSocketId);
+
+        if (previousSocket) {
+          previousSocket.disconnect(true);
+        }
+      }
+
+      socket.join(result.lobbyId);
+      socket.emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
+
+      if (result.battleState) {
+        const serverEvent =
+          result.battleState.status === BATTLE_STATUS.FINISHED
+            ? SOCKET_EVENTS.SERVER.BATTLE_END
+            : SOCKET_EVENTS.SERVER.BATTLE_START;
+
+        socket.emit(serverEvent, result.battleState);
+      }
 
       respond(callback, {
         ok: true,
