@@ -42,6 +42,7 @@ export const createSocketHarness = async () => {
     findBattleByIdDependency: battleDependencies.findBattleById,
     findBattleByLobbyIdDependency: battleDependencies.findBattleByLobbyId,
     saveBattleDependency: battleDependencies.saveBattle,
+    updatePlayersStateDependency: playerDependencies.updatePlayersState,
     getPokemonByIdDependency: async (pokemonId) => pokemonCatalogById[pokemonId],
   });
 
@@ -49,9 +50,10 @@ export const createSocketHarness = async () => {
     runSerializedDependency: runImmediate,
     findPlayerByIdDependency: playerDependencies.findPlayerById,
     updatePlayerSocketDependency: playerDependencies.updatePlayerSocket,
+    updatePlayerStateDependency: playerDependencies.updatePlayerState,
+    updatePlayersStateDependency: playerDependencies.updatePlayersState,
     registerPlayerDependency: playerDependencies.registerPlayer,
     createLobbyDependency: lobbyDependencies.createLobby,
-    findCurrentLobbyDependency: lobbyDependencies.findCurrentLobby,
     findLobbyByIdDependency: lobbyDependencies.findLobbyById,
     findLobbyByPlayerIdDependency: lobbyDependencies.findLobbyByPlayerId,
     findWaitingLobbyDependency: lobbyDependencies.findWaitingLobby,
@@ -76,6 +78,7 @@ export const createSocketHarness = async () => {
 
   const registerHandlers = createSocketHandlersRegistrar({
     joinLobbyDependency: lobbyService.joinLobby,
+    cancelSearchDependency: lobbyService.cancelSearch,
     reconnectPlayerDependency: lobbyService.reconnectPlayer,
     assignRandomTeamDependency: teamAssignmentService.assignRandomTeam,
     markPlayerReadyDependency: lobbyService.markPlayerReady,

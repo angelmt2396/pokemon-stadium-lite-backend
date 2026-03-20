@@ -5,7 +5,7 @@ import { AppError } from '../../../shared/errors/AppError.js';
 import { runSerialized } from '../../../shared/utils/serial-executor.js';
 import { normalizeLobbyStatusPayload } from './lobby.service.js';
 
-const LOBBY_LOCK_KEY = 'single-lobby';
+const lobbyLockKey = (lobbyId) => `lobby:${lobbyId}`;
 
 export const createTeamSelection = (catalog, amount) => {
   const pool = [...catalog];
@@ -29,7 +29,7 @@ export const createTeamAssignmentService = (dependencies = {}) => {
   } = dependencies;
 
   const assignRandomTeam = async ({ lobbyId, playerId }) =>
-    runSerializedDependency(LOBBY_LOCK_KEY, async () => {
+    runSerializedDependency(lobbyLockKey(lobbyId), async () => {
       if (!lobbyId || !playerId) {
         throw new AppError('lobbyId and playerId are required', 400);
       }

@@ -6,6 +6,7 @@ export const createSocketHandlersRegistrar = (dependencies = {}) => {
     dependencies.registerLobbyHandlersDependency ??
     createLobbySocketHandlers({
       joinLobbyDependency: dependencies.joinLobbyDependency,
+      cancelSearchDependency: dependencies.cancelSearchDependency,
       reconnectPlayerDependency: dependencies.reconnectPlayerDependency,
       assignRandomTeamDependency: dependencies.assignRandomTeamDependency,
       markPlayerReadyDependency: dependencies.markPlayerReadyDependency,

@@ -1,9 +1,11 @@
 import { BATTLE_STATUS } from '../../../shared/constants/battle-status.js';
 import { LOBBY_STATUS } from '../../../shared/constants/lobby-status.js';
+import { PLAYER_STATUS } from '../../../shared/constants/player-status.js';
 import { AppError } from '../../../shared/errors/AppError.js';
 import { runSerialized } from '../../../shared/utils/serial-executor.js';
 import { findLobbyById, saveLobby } from '../../lobby/repositories/lobby.repository.js';
 import { createBattle, findBattleById, findBattleByLobbyId, saveBattle } from '../repositories/battle.repository.js';
+import { updatePlayersState } from '../../players/repositories/player.repository.js';
 import { getPokemonById } from '../../pokemon/services/pokemon.service.js';
 import { calculateDamage, applyDamage } from './damage.service.js';
 import { resolveFirstTurn } from './turn.service.js';
@@ -55,6 +57,7 @@ export const createBattleService = (dependencies = {}) => {
     findBattleByIdDependency = findBattleById,
     findBattleByLobbyIdDependency = findBattleByLobbyId,
     saveBattleDependency = saveBattle,
+    updatePlayersStateDependency = updatePlayersState,
     getPokemonByIdDependency = getPokemonById,
     calculateDamageDependency = calculateDamage,
     applyDamageDependency = applyDamage,
@@ -130,6 +133,13 @@ export const createBattleService = (dependencies = {}) => {
 
     lobby.status = LOBBY_STATUS.BATTLING;
     await saveLobbyDependency(lobby);
+    await updatePlayersStateDependency(
+      lobby.players.map((player) => player.playerId),
+      {
+        status: PLAYER_STATUS.BATTLING,
+        activeLobbyId: lobby.id,
+      },
+    );
 
     return normalizeBattleStatePayload(battle);
   };
@@ -197,6 +207,14 @@ export const createBattleService = (dependencies = {}) => {
             lobby.status = LOBBY_STATUS.FINISHED;
             await saveLobbyDependency(lobby);
           }
+
+          await updatePlayersStateDependency(
+            battle.players.map((player) => player.playerId),
+            {
+              status: PLAYER_STATUS.IDLE,
+              activeLobbyId: null,
+            },
+          );
 
           battleEndPayload = {
             battleId: battle.id,

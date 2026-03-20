@@ -17,6 +17,8 @@ export const createInMemoryPlayerDependencies = (state) => ({
       id: nextId(state, 'player'),
       nickname: nickname.trim(),
       socketId,
+      status: 'idle',
+      activeLobbyId: null,
     };
 
     state.players.push(player);
@@ -32,6 +34,27 @@ export const createInMemoryPlayerDependencies = (state) => ({
 
     player.socketId = socketId;
     return player;
+  },
+  updatePlayerState: async (playerId, payload) => {
+    const player = state.players.find((entry) => entry.id === String(playerId)) ?? null;
+
+    if (!player) {
+      return null;
+    }
+
+    Object.assign(player, payload);
+    return player;
+  },
+  updatePlayersState: async (playerIds, payload) => {
+    for (const player of state.players) {
+      if (playerIds.some((playerId) => String(playerId) === String(player.id))) {
+        Object.assign(player, payload);
+      }
+    }
+
+    return {
+      acknowledged: true,
+    };
   },
 });
 
@@ -54,7 +77,8 @@ export const createInMemoryLobbyDependencies = (state) => ({
     const activeLobbies = state.lobbies.filter((lobby) => lobby.status !== 'finished');
     return activeLobbies.at(-1) ?? null;
   },
-  findWaitingLobby: async () => state.lobbies.find((lobby) => lobby.status === 'waiting') ?? null,
+  findWaitingLobby: async () =>
+    state.lobbies.find((lobby) => lobby.status === 'waiting' && lobby.players.length < 2) ?? null,
   saveLobby: async (lobby) => lobby,
 });
 

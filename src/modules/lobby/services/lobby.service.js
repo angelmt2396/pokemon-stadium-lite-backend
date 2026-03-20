@@ -1,12 +1,12 @@
 import { BATTLE_STATUS } from '../../../shared/constants/battle-status.js';
+import { PLAYER_STATUS } from '../../../shared/constants/player-status.js';
 import { AppError } from '../../../shared/errors/AppError.js';
 import { LOBBY_STATUS } from '../../../shared/constants/lobby-status.js';
 import { runSerialized } from '../../../shared/utils/serial-executor.js';
-import { findPlayerById, updatePlayerSocket } from '../../players/repositories/player.repository.js';
+import { findPlayerById, updatePlayerSocket, updatePlayerState, updatePlayersState } from '../../players/repositories/player.repository.js';
 import { registerPlayer } from '../../players/services/player.service.js';
 import {
   createLobby,
-  findCurrentLobby,
   findLobbyById,
   findLobbyByPlayerId,
   findWaitingLobby,
@@ -15,8 +15,10 @@ import {
 import { findBattleByLobbyId } from '../../battle/repositories/battle.repository.js';
 import { normalizeBattleStatePayload, startBattle } from '../../battle/services/battle.service.js';
 
-const LOBBY_LOCK_KEY = 'single-lobby';
+const MATCHMAKING_LOCK_KEY = 'matchmaking';
 const normalizeNickname = (nickname) => nickname.trim().toLowerCase();
+const lobbyLockKey = (lobbyId) => `lobby:${lobbyId}`;
+const playerLockKey = (playerId) => `player:${playerId}`;
 
 export const normalizeLobbyStatusPayload = (lobby) => ({
   lobbyId: lobby.id,
@@ -37,9 +39,10 @@ export const createLobbyService = (dependencies = {}) => {
     runSerializedDependency = runSerialized,
     findPlayerByIdDependency = findPlayerById,
     updatePlayerSocketDependency = updatePlayerSocket,
+    updatePlayerStateDependency = updatePlayerState,
+    updatePlayersStateDependency = updatePlayersState,
     registerPlayerDependency = registerPlayer,
     createLobbyDependency = createLobby,
-    findCurrentLobbyDependency = findCurrentLobby,
     findLobbyByIdDependency = findLobbyById,
     findLobbyByPlayerIdDependency = findLobbyByPlayerId,
     findWaitingLobbyDependency = findWaitingLobby,
@@ -52,37 +55,18 @@ export const createLobbyService = (dependencies = {}) => {
   const resolveLobbyForJoin = async () => {
     const waitingLobby = await findWaitingLobbyDependency();
 
-    if (waitingLobby && waitingLobby.players.length < 2) {
+    if (waitingLobby) {
       return waitingLobby;
     }
 
-    const currentLobby = await findCurrentLobbyDependency();
-
-    if (!currentLobby) {
-      return createLobbyDependency({
-        status: LOBBY_STATUS.WAITING,
-        players: [],
-      });
-    }
-
-    if (currentLobby.status === LOBBY_STATUS.WAITING) {
-      throw new AppError('Lobby is full', 409);
-    }
-
-    const currentBattle = await findBattleByLobbyIdDependency(currentLobby.id);
-
-    if (!currentBattle || currentBattle.status === BATTLE_STATUS.FINISHED) {
-      return createLobbyDependency({
-        status: LOBBY_STATUS.WAITING,
-        players: [],
-      });
-    }
-
-    throw new AppError('Lobby is not accepting players', 409);
+    return createLobbyDependency({
+      status: LOBBY_STATUS.WAITING,
+      players: [],
+    });
   };
 
   const joinLobby = async ({ nickname, socketId }) =>
-    runSerializedDependency(LOBBY_LOCK_KEY, async () => {
+    runSerializedDependency(MATCHMAKING_LOCK_KEY, async () => {
       const lobby = await resolveLobbyForJoin();
       const normalizedNickname = normalizeNickname(nickname);
 
@@ -105,6 +89,25 @@ export const createLobbyService = (dependencies = {}) => {
 
       await saveLobbyDependency(lobby);
 
+      const playerIds = lobby.players.map((playerEntry) => playerEntry.playerId);
+      const lobbyPlayerStatus = lobby.players.length === 2 ? PLAYER_STATUS.IN_LOBBY : PLAYER_STATUS.SEARCHING;
+
+      await updatePlayerStateDependency(player.id, {
+        status: lobbyPlayerStatus,
+        activeLobbyId: lobby.id,
+      });
+
+      if (lobby.players.length === 2) {
+        const otherPlayerIds = playerIds.filter((currentPlayerId) => String(currentPlayerId) !== String(player.id));
+
+        if (otherPlayerIds.length > 0) {
+          await updatePlayersStateDependency(otherPlayerIds, {
+            status: PLAYER_STATUS.IN_LOBBY,
+            activeLobbyId: lobby.id,
+          });
+        }
+      }
+
       return {
         playerId: player.id,
         lobbyId: lobby.id,
@@ -114,7 +117,7 @@ export const createLobbyService = (dependencies = {}) => {
     });
 
   const reconnectPlayer = async ({ playerId, socketId }) =>
-    runSerializedDependency(LOBBY_LOCK_KEY, async () => {
+    runSerializedDependency(playerLockKey(playerId), async () => {
       if (!playerId || !socketId) {
         throw new AppError('playerId and socketId are required', 400);
       }
@@ -145,7 +148,7 @@ export const createLobbyService = (dependencies = {}) => {
     });
 
   const markPlayerReady = async ({ lobbyId, playerId }) =>
-    runSerializedDependency(LOBBY_LOCK_KEY, async () => {
+    runSerializedDependency(lobbyLockKey(lobbyId), async () => {
       if (!lobbyId || !playerId) {
         throw new AppError('lobbyId and playerId are required', 400);
       }
@@ -219,11 +222,65 @@ export const createLobbyService = (dependencies = {}) => {
       };
     });
 
+  const cancelSearch = async ({ playerId }) =>
+    runSerializedDependency(playerLockKey(playerId), async () => {
+      if (!playerId) {
+        throw new AppError('playerId is required', 400);
+      }
+
+      const player = await findPlayerByIdDependency(playerId);
+
+      if (!player) {
+        throw new AppError('Player not found', 404);
+      }
+
+      if (player.status !== PLAYER_STATUS.SEARCHING) {
+        throw new AppError('Player is not in matchmaking search', 409);
+      }
+
+      const lobby = await findLobbyByPlayerIdDependency(player.id);
+
+      if (!lobby) {
+        await updatePlayerStateDependency(player.id, {
+          status: PLAYER_STATUS.IDLE,
+          activeLobbyId: null,
+        });
+
+        return {
+          playerId: player.id,
+          canceled: true,
+          lobbyId: null,
+          lobbyStatus: null,
+        };
+      }
+
+      if (lobby.status !== LOBBY_STATUS.WAITING || lobby.players.length !== 1) {
+        throw new AppError('Player can only cancel while waiting for a match', 409);
+      }
+
+      lobby.players = lobby.players.filter((entry) => String(entry.playerId) !== String(player.id));
+      lobby.status = LOBBY_STATUS.FINISHED;
+
+      await saveLobbyDependency(lobby);
+      await updatePlayerStateDependency(player.id, {
+        status: PLAYER_STATUS.IDLE,
+        activeLobbyId: null,
+      });
+
+      return {
+        playerId: player.id,
+        canceled: true,
+        lobbyId: lobby.id,
+        lobbyStatus: normalizeLobbyStatusPayload(lobby),
+      };
+    });
+
   return {
     joinLobby,
     reconnectPlayer,
     markPlayerReady,
+    cancelSearch,
   };
 };
 
-export const { joinLobby, reconnectPlayer, markPlayerReady } = createLobbyService();
+export const { joinLobby, reconnectPlayer, markPlayerReady, cancelSearch } = createLobbyService();

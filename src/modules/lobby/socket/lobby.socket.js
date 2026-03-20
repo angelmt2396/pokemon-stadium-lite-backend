@@ -1,6 +1,6 @@
 import { SOCKET_EVENTS } from '../../../shared/constants/socket-events.js';
 import { BATTLE_STATUS } from '../../../shared/constants/battle-status.js';
-import { joinLobby, markPlayerReady, reconnectPlayer } from '../services/lobby.service.js';
+import { cancelSearch, joinLobby, markPlayerReady, reconnectPlayer } from '../services/lobby.service.js';
 import { assignRandomTeam } from '../services/team-assignment.service.js';
 
 const respond = (callback, payload) => {
@@ -12,13 +12,14 @@ const respond = (callback, payload) => {
 export const createLobbySocketHandlers = (dependencies = {}) => {
   const {
     joinLobbyDependency = joinLobby,
+    cancelSearchDependency = cancelSearch,
     reconnectPlayerDependency = reconnectPlayer,
     assignRandomTeamDependency = assignRandomTeam,
     markPlayerReadyDependency = markPlayerReady,
   } = dependencies;
 
   return (socket, io) => {
-    socket.on(SOCKET_EVENTS.CLIENT.JOIN_LOBBY, async (payload, callback) => {
+    const handleJoinLobby = async (payload, callback) => {
       try {
         const result = await joinLobbyDependency({
           nickname: payload?.nickname,
@@ -27,6 +28,48 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
 
         socket.join(result.lobbyId);
         io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
+
+        if (result.lobbyStatus.players.length === 1) {
+          socket.emit(SOCKET_EVENTS.SERVER.SEARCH_STATUS, {
+            playerId: result.playerId,
+            status: 'searching',
+            lobbyId: result.lobbyId,
+          });
+        }
+
+        if (result.lobbyStatus.players.length === 2) {
+          io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.MATCH_FOUND, {
+            lobbyId: result.lobbyId,
+            players: result.lobbyStatus.players,
+          });
+        }
+
+        respond(callback, {
+          ok: true,
+          data: result,
+        });
+      } catch (error) {
+        respond(callback, {
+          ok: false,
+          message: error.message,
+        });
+      }
+    };
+
+    socket.on(SOCKET_EVENTS.CLIENT.JOIN_LOBBY, handleJoinLobby);
+    socket.on(SOCKET_EVENTS.CLIENT.SEARCH_MATCH, handleJoinLobby);
+
+    socket.on(SOCKET_EVENTS.CLIENT.CANCEL_SEARCH, async (payload, callback) => {
+      try {
+        const result = await cancelSearchDependency({
+          playerId: payload?.playerId,
+        });
+
+        socket.emit(SOCKET_EVENTS.SERVER.SEARCH_STATUS, {
+          playerId: result.playerId,
+          status: 'idle',
+          canceled: true,
+        });
 
         respond(callback, {
           ok: true,

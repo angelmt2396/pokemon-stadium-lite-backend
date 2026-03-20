@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { PLAYER_STATUS } from '../../../shared/constants/player-status.js';
 
 const playerSchema = new mongoose.Schema(
   {
@@ -10,6 +11,16 @@ const playerSchema = new mongoose.Schema(
     },
     socketId: {
       type: String,
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: Object.values(PLAYER_STATUS),
+      default: PLAYER_STATUS.IDLE,
+    },
+    activeLobbyId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Lobby',
       default: null,
     },
   },

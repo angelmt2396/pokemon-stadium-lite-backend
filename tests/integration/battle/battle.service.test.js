@@ -7,6 +7,7 @@ import { createBattleService } from '../../../src/modules/battle/services/battle
 import {
   createInMemoryBattleDependencies,
   createInMemoryLobbyDependencies,
+  createInMemoryPlayerDependencies,
   createInMemoryState,
   runImmediate,
 } from '../helpers/in-memory-state.js';
@@ -22,6 +23,24 @@ const createService = () => {
   const state = createInMemoryState();
   const lobbyDependencies = createInMemoryLobbyDependencies(state);
   const battleDependencies = createInMemoryBattleDependencies(state);
+  const playerDependencies = createInMemoryPlayerDependencies(state);
+
+  state.players.push(
+    {
+      id: 'player-ash',
+      nickname: 'Ash',
+      socketId: 'socket-ash',
+      status: 'in_lobby',
+      activeLobbyId: 'lobby-1',
+    },
+    {
+      id: 'player-misty',
+      nickname: 'Misty',
+      socketId: 'socket-misty',
+      status: 'in_lobby',
+      activeLobbyId: 'lobby-1',
+    },
+  );
 
   const lobby = {
     id: 'lobby-1',
@@ -60,6 +79,7 @@ const createService = () => {
     findBattleByIdDependency: battleDependencies.findBattleById,
     findBattleByLobbyIdDependency: battleDependencies.findBattleByLobbyId,
     saveBattleDependency: battleDependencies.saveBattle,
+    updatePlayersStateDependency: playerDependencies.updatePlayersState,
     getPokemonByIdDependency: async (pokemonId) => pokemonCatalogById[pokemonId],
   });
 
@@ -80,6 +100,8 @@ test('startBattle creates a battling snapshot and selects the first turn by spee
   assert.equal(battleState.currentTurnPlayerId, 'player-ash');
   assert.equal(state.battles.length, 1);
   assert.equal(state.lobbies[0].status, LOBBY_STATUS.BATTLING);
+  assert.equal(state.players[0].status, 'battling');
+  assert.equal(state.players[1].status, 'battling');
 });
 
 test('processAttack applies damage and passes the turn to the defender', async () => {
@@ -131,4 +153,8 @@ test('processAttack finishes the battle when the defender has no remaining pokem
   assert.equal(result.turnResult.battleStatus, BATTLE_STATUS.FINISHED);
   assert.equal(result.battleEnd.winnerPlayerId, 'player-ash');
   assert.equal(state.lobbies[0].status, LOBBY_STATUS.FINISHED);
+  assert.equal(state.players[0].status, 'idle');
+  assert.equal(state.players[1].status, 'idle');
+  assert.equal(state.players[0].activeLobbyId, null);
+  assert.equal(state.players[1].activeLobbyId, null);
 });

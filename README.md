@@ -7,7 +7,7 @@ El proyecto está implementado como un monolito modular en JavaScript con:
 - Express para HTTP
 - Socket.IO para tiempo real
 - MongoDB con Mongoose para persistencia
-- un único lobby
+- matchmaking con múltiples lobbies concurrentes
 - catálogo Pokémon consumido desde proveedor externo
 
 ## Estado actual
@@ -18,11 +18,15 @@ Implementado:
 - `GET /api/v1/pokemon`
 - `GET /api/v1/pokemon/:id`
 - `join_lobby`
+- `search_match`
+- `cancel_search`
 - `assign_pokemon`
 - `ready`
 - `attack`
 - `reconnect_player`
-- lobby único con estados `waiting`, `ready`, `battling`, `finished`
+- matchmaking por orden de llegada hacia lobbies `waiting`
+- múltiples lobbies activos al mismo tiempo
+- estados explícitos de jugador: `idle`, `searching`, `in_lobby`, `battling`
 - asignación aleatoria sin repetidos entre jugadores
 - inicio automático de batalla cuando ambos jugadores están listos
 - cálculo de daño y cambio automático de Pokémon
@@ -110,6 +114,8 @@ Respuesta:
 Cliente -> servidor:
 
 - `join_lobby`
+- `search_match`
+- `cancel_search`
 - `assign_pokemon`
 - `ready`
 - `attack`
@@ -117,6 +123,8 @@ Cliente -> servidor:
 
 Servidor -> cliente:
 
+- `search_status`
+- `match_found`
 - `lobby_status`
 - `battle_start`
 - `turn_result`

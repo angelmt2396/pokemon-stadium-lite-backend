@@ -36,6 +36,7 @@ const createServices = () => {
     findBattleByIdDependency: battleDependencies.findBattleById,
     findBattleByLobbyIdDependency: battleDependencies.findBattleByLobbyId,
     saveBattleDependency: battleDependencies.saveBattle,
+    updatePlayersStateDependency: playerDependencies.updatePlayersState,
     getPokemonByIdDependency: async (pokemonId) => pokemonCatalogById[pokemonId],
   });
 
@@ -43,9 +44,10 @@ const createServices = () => {
     runSerializedDependency: runImmediate,
     findPlayerByIdDependency: playerDependencies.findPlayerById,
     updatePlayerSocketDependency: playerDependencies.updatePlayerSocket,
+    updatePlayerStateDependency: playerDependencies.updatePlayerState,
+    updatePlayersStateDependency: playerDependencies.updatePlayersState,
     registerPlayerDependency: playerDependencies.registerPlayer,
     createLobbyDependency: lobbyDependencies.createLobby,
-    findCurrentLobbyDependency: lobbyDependencies.findCurrentLobby,
     findLobbyByIdDependency: lobbyDependencies.findLobbyById,
     findLobbyByPlayerIdDependency: lobbyDependencies.findLobbyByPlayerId,
     findWaitingLobbyDependency: lobbyDependencies.findWaitingLobby,
@@ -92,6 +94,8 @@ test('joinLobby creates a waiting lobby and registers the first player', async (
   assert.equal(state.lobbies.length, 1);
   assert.equal(result.lobbyStatus.players.length, 1);
   assert.equal(result.lobbyStatus.players[0].nickname, 'Ash');
+  assert.equal(state.players[0].status, 'searching');
+  assert.equal(state.players[0].activeLobbyId, result.lobbyId);
 });
 
 test('joinLobby rejects duplicated nicknames in the same active lobby', async () => {
@@ -112,6 +116,38 @@ test('joinLobby rejects duplicated nicknames in the same active lobby', async ()
       message: 'Nickname is already taken in the current lobby',
     },
   );
+});
+
+test('joinLobby creates a new waiting lobby once the oldest waiting lobby is already full', async () => {
+  const { state, lobbyService } = createServices();
+
+  const ash = await lobbyService.joinLobby({
+    nickname: 'Ash',
+    socketId: 'socket-ash',
+  });
+  const misty = await lobbyService.joinLobby({
+    nickname: 'Misty',
+    socketId: 'socket-misty',
+  });
+  const brock = await lobbyService.joinLobby({
+    nickname: 'Brock',
+    socketId: 'socket-brock',
+  });
+  const tracey = await lobbyService.joinLobby({
+    nickname: 'Tracey',
+    socketId: 'socket-tracey',
+  });
+
+  assert.equal(state.lobbies.length, 2);
+  assert.equal(ash.lobbyId, misty.lobbyId);
+  assert.equal(brock.lobbyId, tracey.lobbyId);
+  assert.notEqual(ash.lobbyId, brock.lobbyId);
+  assert.equal(state.lobbies[0].players.length, 2);
+  assert.equal(state.lobbies[1].players.length, 2);
+  assert.equal(state.players[0].status, 'in_lobby');
+  assert.equal(state.players[1].status, 'in_lobby');
+  assert.equal(state.players[2].status, 'in_lobby');
+  assert.equal(state.players[3].status, 'in_lobby');
 });
 
 test('markPlayerReady starts a battle when both players are ready', async () => {
@@ -147,6 +183,8 @@ test('markPlayerReady starts a battle when both players are ready', async () => 
   assert.equal(secondReady.battleStart.currentTurnPlayerId, ash.playerId);
   assert.equal(state.battles.length, 1);
   assert.equal(state.lobbies[0].status, LOBBY_STATUS.BATTLING);
+  assert.equal(state.players[0].status, 'battling');
+  assert.equal(state.players[1].status, 'battling');
 });
 
 test('markPlayerReady is idempotent and returns the active battle snapshot', async () => {
@@ -275,4 +313,47 @@ test('reconnectPlayer returns the finished battle snapshot when the battle alrea
   assert.equal(result.lobbyStatus.status, LOBBY_STATUS.FINISHED);
   assert.equal(result.battleState.status, BATTLE_STATUS.FINISHED);
   assert.equal(result.battleState.currentTurnPlayerId, null);
+});
+
+test('cancelSearch removes a searching player from a waiting lobby and returns the player to idle', async () => {
+  const { state, lobbyService } = createServices();
+
+  const ash = await lobbyService.joinLobby({
+    nickname: 'Ash',
+    socketId: 'socket-ash',
+  });
+
+  const result = await lobbyService.cancelSearch({
+    playerId: ash.playerId,
+  });
+
+  assert.equal(result.canceled, true);
+  assert.equal(result.lobbyId, ash.lobbyId);
+  assert.equal(state.players[0].status, 'idle');
+  assert.equal(state.players[0].activeLobbyId, null);
+  assert.equal(state.lobbies[0].status, LOBBY_STATUS.FINISHED);
+  assert.equal(state.lobbies[0].players.length, 0);
+});
+
+test('cancelSearch rejects players that are already matched inside a lobby', async () => {
+  const { lobbyService } = createServices();
+
+  const ash = await lobbyService.joinLobby({
+    nickname: 'Ash',
+    socketId: 'socket-ash',
+  });
+  await lobbyService.joinLobby({
+    nickname: 'Misty',
+    socketId: 'socket-misty',
+  });
+
+  await assert.rejects(
+    () =>
+      lobbyService.cancelSearch({
+        playerId: ash.playerId,
+      }),
+    {
+      message: 'Player is not in matchmaking search',
+    },
+  );
 });

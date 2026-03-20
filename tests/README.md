@@ -11,7 +11,7 @@ Hoy cubre:
 - reglas puras de batalla
 - servicios de lobby, batalla y asignación de equipos
 - capa REST de Express
-- flujo E2E de Socket.IO con clientes reales
+- flujo E2E de Socket.IO con clientes reales y matchmaking multi-lobby
 
 ## Estructura
 
@@ -56,11 +56,14 @@ Prueba servicios con dependencias en memoria.
 Cobertura actual:
 
 - `join_lobby`
+- creación de múltiples lobbies `waiting`
 - nickname duplicado
+- `cancel_search`
 - `assign_pokemon`
 - `ready`
 - `attack`
 - `reconnect_player`
+- transiciones de estado del jugador entre `idle`, `searching`, `in_lobby` y `battling`
 
 Ventaja:
 
@@ -91,13 +94,17 @@ Prueba Socket.IO con servidor y clientes reales.
 Cobertura actual:
 
 - `join_lobby`
+- `search_match`
+- `cancel_search`
+- `search_status`
 - `assign_pokemon`
+- `match_found`
 - `ready`
 - `battle_start`
 - `attack`
 - `turn_result`
 - `reconnect_player`
-- rechazo de tercer jugador
+- creación de segundo lobby al llegar un tercer jugador
 - rechazo de ataque fuera de turno
 - rechazo de reconexión inválida
 

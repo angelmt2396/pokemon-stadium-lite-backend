@@ -13,7 +13,12 @@ export const findCurrentLobby = async () =>
   LobbyModel.findOne({ status: { $ne: 'finished' } }).sort({ createdAt: -1 });
 
 export const findWaitingLobby = async () =>
-  LobbyModel.findOne({ status: 'waiting' }).sort({ createdAt: 1 });
+  LobbyModel.findOne({
+    status: 'waiting',
+    $expr: {
+      $lt: [{ $size: '$players' }, 2],
+    },
+  }).sort({ createdAt: 1 });
 
 export const updateLobbyById = async (lobbyId, payload) =>
   LobbyModel.findByIdAndUpdate(lobbyId, payload, { new: true });
