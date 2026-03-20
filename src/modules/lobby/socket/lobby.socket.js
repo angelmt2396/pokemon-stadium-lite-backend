@@ -8,13 +8,16 @@ const respond = (callback, payload) => {
   }
 };
 
-export const registerLobbySocketHandlers = (socket) => {
+export const registerLobbySocketHandlers = (socket, io) => {
   socket.on(SOCKET_EVENTS.CLIENT.JOIN_LOBBY, async (payload, callback) => {
     try {
       const result = await joinLobby({
         nickname: payload?.nickname,
         socketId: socket.id,
       });
+
+      socket.join(result.lobbyId);
+      io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
 
       respond(callback, {
         ok: true,
@@ -35,6 +38,8 @@ export const registerLobbySocketHandlers = (socket) => {
         playerId: payload?.playerId,
       });
 
+      io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
+
       respond(callback, {
         ok: true,
         data: result,
@@ -53,6 +58,12 @@ export const registerLobbySocketHandlers = (socket) => {
         lobbyId: payload?.lobbyId,
         playerId: payload?.playerId,
       });
+
+      io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
+
+      if (result.battleStart) {
+        io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.BATTLE_START, result.battleStart);
+      }
 
       respond(callback, {
         ok: true,

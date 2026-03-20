@@ -7,7 +7,7 @@ const respond = (callback, payload) => {
   }
 };
 
-export const registerBattleSocketHandlers = (socket) => {
+export const registerBattleSocketHandlers = (socket, io) => {
   socket.on(SOCKET_EVENTS.CLIENT.ATTACK, async (payload, callback) => {
     try {
       const result = await processAttack({
@@ -15,9 +15,17 @@ export const registerBattleSocketHandlers = (socket) => {
         playerId: payload?.playerId,
       });
 
+      io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.TURN_RESULT, result.turnResult);
+
+      if (result.battleEnd) {
+        io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.BATTLE_END, result.battleEnd);
+      }
+
       respond(callback, {
         ok: true,
-        data: result,
+        data: {
+          accepted: result.accepted,
+        },
       });
     } catch (error) {
       respond(callback, {

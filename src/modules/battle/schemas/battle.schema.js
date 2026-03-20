@@ -49,6 +49,11 @@ const battlePlayerSchema = new mongoose.Schema(
       ref: 'Player',
       required: true,
     },
+    nickname: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     activePokemonIndex: {
       type: Number,
       default: 0,

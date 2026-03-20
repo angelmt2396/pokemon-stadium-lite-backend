@@ -25,6 +25,11 @@ const lobbyPlayerSchema = new mongoose.Schema(
       ref: 'Player',
       required: true,
     },
+    nickname: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     ready: {
       type: Boolean,
       default: false,

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 import { env } from '../../../config/env.js';
 import { AppError } from '../../../shared/errors/AppError.js';
-import { mapPokemonDetail, mapPokemonListItem } from '../mappers/pokemon.mapper.js';
+import { extractPokemonList, mapPokemonDetail, mapPokemonListItem } from '../mappers/pokemon.mapper.js';
 
 const pokemonApiClient = axios.create({
   baseURL: env.pokemonApiBaseUrl,
@@ -11,8 +11,13 @@ const pokemonApiClient = axios.create({
 
 export const fetchPokemonList = async () => {
   const response = await pokemonApiClient.get('/list');
+  const pokemonList = extractPokemonList(response.data);
 
-  return response.data.map(mapPokemonListItem);
+  if (!pokemonList.length) {
+    throw new AppError('Pokemon list response has an invalid format', 502);
+  }
+
+  return pokemonList.map(mapPokemonListItem);
 };
 
 export const fetchPokemonById = async (pokemonId) => {
