@@ -16,38 +16,7 @@ import { findBattleByLobbyId } from '../../battle/repositories/battle.repository
 import { normalizeBattleStatePayload, startBattle } from '../../battle/services/battle.service.js';
 
 const LOBBY_LOCK_KEY = 'single-lobby';
-
-const resolveLobbyForJoin = async () => {
-  const waitingLobby = await findWaitingLobby();
-
-  if (waitingLobby && waitingLobby.players.length < 2) {
-    return waitingLobby;
-  }
-
-  const currentLobby = await findCurrentLobby();
-
-  if (!currentLobby) {
-    return createLobby({
-      status: LOBBY_STATUS.WAITING,
-      players: [],
-    });
-  }
-
-  if (currentLobby.status === LOBBY_STATUS.WAITING) {
-    throw new AppError('Lobby is full', 409);
-  }
-
-  const currentBattle = await findBattleByLobbyId(currentLobby.id);
-
-  if (!currentBattle || currentBattle.status === BATTLE_STATUS.FINISHED) {
-    return createLobby({
-      status: LOBBY_STATUS.WAITING,
-      players: [],
-    });
-  }
-
-  throw new AppError('Lobby is not accepting players', 409);
-};
+const normalizeNickname = (nickname) => nickname.trim().toLowerCase();
 
 export const normalizeLobbyStatusPayload = (lobby) => ({
   lobbyId: lobby.id,
@@ -63,118 +32,198 @@ export const normalizeLobbyStatusPayload = (lobby) => ({
   })),
 });
 
-export const joinLobby = async ({ nickname, socketId }) =>
-  runSerialized(LOBBY_LOCK_KEY, async () => {
-    const lobby = await resolveLobbyForJoin();
+export const createLobbyService = (dependencies = {}) => {
+  const {
+    runSerializedDependency = runSerialized,
+    findPlayerByIdDependency = findPlayerById,
+    updatePlayerSocketDependency = updatePlayerSocket,
+    registerPlayerDependency = registerPlayer,
+    createLobbyDependency = createLobby,
+    findCurrentLobbyDependency = findCurrentLobby,
+    findLobbyByIdDependency = findLobbyById,
+    findLobbyByPlayerIdDependency = findLobbyByPlayerId,
+    findWaitingLobbyDependency = findWaitingLobby,
+    saveLobbyDependency = saveLobby,
+    findBattleByLobbyIdDependency = findBattleByLobbyId,
+    normalizeBattleStatePayloadDependency = normalizeBattleStatePayload,
+    startBattleDependency = startBattle,
+  } = dependencies;
 
-    const player = await registerPlayer({ nickname, socketId });
+  const resolveLobbyForJoin = async () => {
+    const waitingLobby = await findWaitingLobbyDependency();
 
-    lobby.players.push({
-      playerId: player.id,
-      nickname: player.nickname,
-      ready: false,
-      team: [],
+    if (waitingLobby && waitingLobby.players.length < 2) {
+      return waitingLobby;
+    }
+
+    const currentLobby = await findCurrentLobbyDependency();
+
+    if (!currentLobby) {
+      return createLobbyDependency({
+        status: LOBBY_STATUS.WAITING,
+        players: [],
+      });
+    }
+
+    if (currentLobby.status === LOBBY_STATUS.WAITING) {
+      throw new AppError('Lobby is full', 409);
+    }
+
+    const currentBattle = await findBattleByLobbyIdDependency(currentLobby.id);
+
+    if (!currentBattle || currentBattle.status === BATTLE_STATUS.FINISHED) {
+      return createLobbyDependency({
+        status: LOBBY_STATUS.WAITING,
+        players: [],
+      });
+    }
+
+    throw new AppError('Lobby is not accepting players', 409);
+  };
+
+  const joinLobby = async ({ nickname, socketId }) =>
+    runSerializedDependency(LOBBY_LOCK_KEY, async () => {
+      const lobby = await resolveLobbyForJoin();
+      const normalizedNickname = normalizeNickname(nickname);
+
+      const duplicatedNickname = lobby.players.find(
+        (player) => normalizeNickname(player.nickname) === normalizedNickname,
+      );
+
+      if (duplicatedNickname) {
+        throw new AppError('Nickname is already taken in the current lobby', 409);
+      }
+
+      const player = await registerPlayerDependency({ nickname, socketId });
+
+      lobby.players.push({
+        playerId: player.id,
+        nickname: player.nickname,
+        ready: false,
+        team: [],
+      });
+
+      await saveLobbyDependency(lobby);
+
+      return {
+        playerId: player.id,
+        lobbyId: lobby.id,
+        status: lobby.status,
+        lobbyStatus: normalizeLobbyStatusPayload(lobby),
+      };
     });
 
-    await saveLobby(lobby);
+  const reconnectPlayer = async ({ playerId, socketId }) =>
+    runSerializedDependency(LOBBY_LOCK_KEY, async () => {
+      if (!playerId || !socketId) {
+        throw new AppError('playerId and socketId are required', 400);
+      }
 
-    return {
-      playerId: player.id,
-      lobbyId: lobby.id,
-      status: lobby.status,
-      lobbyStatus: normalizeLobbyStatusPayload(lobby),
-    };
-  });
+      const player = await findPlayerByIdDependency(playerId);
 
-export const reconnectPlayer = async ({ playerId, socketId }) =>
-  runSerialized(LOBBY_LOCK_KEY, async () => {
-    if (!playerId || !socketId) {
-      throw new AppError('playerId and socketId are required', 400);
-    }
+      if (!player) {
+        throw new AppError('Player not found', 404);
+      }
 
-    const player = await findPlayerById(playerId);
+      const lobby = await findLobbyByPlayerIdDependency(player.id);
 
-    if (!player) {
-      throw new AppError('Player not found', 404);
-    }
+      if (!lobby) {
+        throw new AppError('Lobby not found for player', 404);
+      }
 
-    const lobby = await findLobbyByPlayerId(player.id);
+      const previousSocketId = player.socketId;
+      const updatedPlayer = await updatePlayerSocketDependency(player.id, socketId);
+      const battle = await findBattleByLobbyIdDependency(lobby.id);
 
-    if (!lobby) {
-      throw new AppError('Lobby not found for player', 404);
-    }
+      return {
+        playerId: updatedPlayer.id,
+        lobbyId: lobby.id,
+        previousSocketId,
+        lobbyStatus: normalizeLobbyStatusPayload(lobby),
+        battleState: battle ? normalizeBattleStatePayloadDependency(battle) : null,
+      };
+    });
 
-    const previousSocketId = player.socketId;
-    const updatedPlayer = await updatePlayerSocket(player.id, socketId);
-    const battle = await findBattleByLobbyId(lobby.id);
+  const markPlayerReady = async ({ lobbyId, playerId }) =>
+    runSerializedDependency(LOBBY_LOCK_KEY, async () => {
+      if (!lobbyId || !playerId) {
+        throw new AppError('lobbyId and playerId are required', 400);
+      }
 
-    return {
-      playerId: updatedPlayer.id,
-      lobbyId: lobby.id,
-      previousSocketId,
-      lobbyStatus: normalizeLobbyStatusPayload(lobby),
-      battleState: battle ? normalizeBattleStatePayload(battle) : null,
-    };
-  });
+      const lobby = await findLobbyByIdDependency(lobbyId);
 
-export const markPlayerReady = async ({ lobbyId, playerId }) =>
-  runSerialized(LOBBY_LOCK_KEY, async () => {
-    if (!lobbyId || !playerId) {
-      throw new AppError('lobbyId and playerId are required', 400);
-    }
+      if (!lobby) {
+        throw new AppError('Lobby not found', 404);
+      }
 
-    const lobby = await findLobbyById(lobbyId);
+      const currentPlayer = lobby.players.find((player) => String(player.playerId) === String(playerId));
 
-    if (!lobby) {
-      throw new AppError('Lobby not found', 404);
-    }
+      if (!currentPlayer) {
+        throw new AppError('Player does not belong to the lobby', 404);
+      }
 
-    const currentPlayer = lobby.players.find((player) => String(player.playerId) === String(playerId));
+      const existingBattle = await findBattleByLobbyIdDependency(lobby.id);
 
-    if (!currentPlayer) {
-      throw new AppError('Player does not belong to the lobby', 404);
-    }
+      if (currentPlayer.ready) {
+        return {
+          lobbyId: lobby.id,
+          playerId: String(currentPlayer.playerId),
+          ready: true,
+          lobbyStatus: normalizeLobbyStatusPayload(lobby),
+          battleStart:
+            existingBattle && existingBattle.status !== BATTLE_STATUS.FINISHED
+              ? normalizeBattleStatePayloadDependency(existingBattle)
+              : null,
+        };
+      }
 
-    if (lobby.status === LOBBY_STATUS.BATTLING || lobby.status === LOBBY_STATUS.FINISHED) {
-      throw new AppError('Lobby is not accepting ready updates', 409);
-    }
+      if (lobby.status === LOBBY_STATUS.BATTLING || lobby.status === LOBBY_STATUS.FINISHED) {
+        throw new AppError('Lobby is not accepting ready updates', 409);
+      }
 
-    if (currentPlayer.team.length !== 3) {
-      throw new AppError('Player does not have an assigned team', 409);
-    }
+      if (currentPlayer.team.length !== 3) {
+        throw new AppError('Player does not have an assigned team', 409);
+      }
 
-    currentPlayer.ready = true;
+      currentPlayer.ready = true;
 
-    if (lobby.players.length === 2 && lobby.players.every((player) => player.ready)) {
-      lobby.status = LOBBY_STATUS.READY;
-    }
+      if (lobby.players.length === 2 && lobby.players.every((player) => player.ready)) {
+        lobby.status = LOBBY_STATUS.READY;
+      }
 
-    await saveLobby(lobby);
+      await saveLobbyDependency(lobby);
 
-    const lobbyStatus = normalizeLobbyStatusPayload(lobby);
+      const lobbyStatus = normalizeLobbyStatusPayload(lobby);
 
-    if (lobby.status !== LOBBY_STATUS.READY) {
+      if (lobby.status !== LOBBY_STATUS.READY) {
+        return {
+          lobbyId: lobby.id,
+          playerId: String(currentPlayer.playerId),
+          ready: true,
+          lobbyStatus,
+        };
+      }
+
+      if (existingBattle && existingBattle.status !== 'finished') {
+        throw new AppError('Battle already exists for this lobby', 409);
+      }
+
+      const battleStart = await startBattleDependency({ lobbyId: lobby.id });
+
       return {
         lobbyId: lobby.id,
         playerId: String(currentPlayer.playerId),
         ready: true,
         lobbyStatus,
+        battleStart,
       };
-    }
+    });
 
-    const existingBattle = await findBattleByLobbyId(lobby.id);
+  return {
+    joinLobby,
+    reconnectPlayer,
+    markPlayerReady,
+  };
+};
 
-    if (existingBattle && existingBattle.status !== 'finished') {
-      throw new AppError('Battle already exists for this lobby', 409);
-    }
-
-    const battleStart = await startBattle({ lobbyId: lobby.id });
-
-    return {
-      lobbyId: lobby.id,
-      playerId: String(currentPlayer.playerId),
-      ready: true,
-      lobbyStatus,
-      battleStart,
-    };
-  });
+export const { joinLobby, reconnectPlayer, markPlayerReady } = createLobbyService();

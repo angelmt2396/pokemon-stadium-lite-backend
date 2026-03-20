@@ -7,31 +7,39 @@ const respond = (callback, payload) => {
   }
 };
 
-export const registerBattleSocketHandlers = (socket, io) => {
-  socket.on(SOCKET_EVENTS.CLIENT.ATTACK, async (payload, callback) => {
-    try {
-      const result = await processAttack({
-        battleId: payload?.battleId,
-        playerId: payload?.playerId,
-      });
+export const createBattleSocketHandlers = (dependencies = {}) => {
+  const {
+    processAttackDependency = processAttack,
+  } = dependencies;
 
-      io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.TURN_RESULT, result.turnResult);
+  return (socket, io) => {
+    socket.on(SOCKET_EVENTS.CLIENT.ATTACK, async (payload, callback) => {
+      try {
+        const result = await processAttackDependency({
+          battleId: payload?.battleId,
+          playerId: payload?.playerId,
+        });
 
-      if (result.battleEnd) {
-        io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.BATTLE_END, result.battleEnd);
+        io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.TURN_RESULT, result.turnResult);
+
+        if (result.battleEnd) {
+          io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.BATTLE_END, result.battleEnd);
+        }
+
+        respond(callback, {
+          ok: true,
+          data: {
+            accepted: result.accepted,
+          },
+        });
+      } catch (error) {
+        respond(callback, {
+          ok: false,
+          message: error.message,
+        });
       }
-
-      respond(callback, {
-        ok: true,
-        data: {
-          accepted: result.accepted,
-        },
-      });
-    } catch (error) {
-      respond(callback, {
-        ok: false,
-        message: error.message,
-      });
-    }
-  });
+    });
+  };
 };
+
+export const registerBattleSocketHandlers = createBattleSocketHandlers();

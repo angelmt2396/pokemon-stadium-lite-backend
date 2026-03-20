@@ -1,10 +1,17 @@
 import { Router } from 'express';
 
-import { getPokemonDetail, getPokemonList } from './pokemon.controller.js';
+import { createPokemonController } from './pokemon.controller.js';
 
-const router = Router();
+export const createPokemonRouter = (dependencies = {}) => {
+  const router = Router();
+  const { getPokemonDetail, getPokemonList } = createPokemonController(dependencies);
 
-router.get('/', getPokemonList);
-router.get('/:id', getPokemonDetail);
+  router.get('/', getPokemonList);
+  router.get('/:id', getPokemonDetail);
+
+  return router;
+};
+
+const router = createPokemonRouter();
 
 export default router;

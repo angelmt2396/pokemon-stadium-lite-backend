@@ -1,52 +1,126 @@
 # Pokemon Stadium Lite Backend
 
-Backend inicial para la prueba técnica de Pokémon Stadium Lite. El proyecto está organizado como un monolito modular en JavaScript, con separación por feature y entradas diferenciadas para HTTP y WebSocket.
+Backend fullstack para la prueba técnica de Pokémon Stadium Lite.
 
-## Objetivo del scaffold
+El proyecto está implementado como un monolito modular en JavaScript con:
 
-Este scaffold deja listo el punto de arranque del backend y la estructura base para continuar la implementación sin mezclar responsabilidades:
+- Express para HTTP
+- Socket.IO para tiempo real
+- MongoDB con Mongoose para persistencia
+- un único lobby
+- catálogo Pokémon consumido desde proveedor externo
 
-- servidor HTTP con Express
-- servidor WebSocket con Socket.IO
-- versionado REST en `/api/v1`
-- integración real con la API externa de Pokémon
-- conexión opcional a MongoDB con Mongoose
-- módulos separados para `pokemon`, `players`, `lobby` y `battle`
-- servicios y repositorios preparados para completar la lógica de negocio
+## Estado actual
 
-No se cerró la lógica completa de lobby ni batalla. Quedó preparada la estructura y los contratos principales para implementar esa parte con tus decisiones finales.
+Implementado:
+
+- `GET /health`
+- `GET /api/v1/pokemon`
+- `GET /api/v1/pokemon/:id`
+- `join_lobby`
+- `assign_pokemon`
+- `ready`
+- `attack`
+- `reconnect_player`
+- lobby único con estados `waiting`, `ready`, `battling`, `finished`
+- asignación aleatoria sin repetidos entre jugadores
+- inicio automático de batalla cuando ambos jugadores están listos
+- cálculo de daño y cambio automático de Pokémon
+- determinación de ganador
+- serialización de acciones para evitar race conditions básicas
 
 ## Requisitos
 
-- Node.js 18 o superior
-- MongoDB si quieres persistencia real desde esta etapa
+- Node.js 18+
+- MongoDB
 
-## Scripts
+## Instalación
 
 ```bash
 npm install
-npm run dev
-```
-
-Otros scripts:
-
-```bash
-npm start
-npm run check
 ```
 
 ## Variables de entorno
 
-Usa `.env.example` como referencia.
+Usa [.env.example](./.env.example) como base.
 
 ```env
 PORT=3000
-CLIENT_ORIGIN=http://localhost:5173
-MONGODB_URI=
+CLIENT_ORIGIN=http://localhost:5173,http://localhost:4173
+MONGODB_URI=mongodb://127.0.0.1:27017/pokemon-stadium-lite
 POKEMON_API_BASE_URL=https://pokemon-api-92034153384.us-central1.run.app
 ```
 
-Si `MONGODB_URI` no está configurada, el servidor arranca sin conexión a base de datos. Esto permite trabajar primero en el contrato y luego conectar persistencia.
+## Scripts
+
+```bash
+npm run dev
+npm start
+npm run check
+npm run test
+npm run test:unit
+npm run test:integration
+npm run test:http
+npm run test:e2e
+```
+
+## API REST
+
+### `GET /health`
+
+Respuesta:
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "ok",
+    "service": "pokemon-stadium-lite-backend"
+  }
+}
+```
+
+### `GET /api/v1/pokemon`
+
+Respuesta:
+
+```json
+{
+  "success": true,
+  "data": [],
+  "meta": {
+    "total": 0
+  }
+}
+```
+
+### `GET /api/v1/pokemon/:id`
+
+Respuesta:
+
+```json
+{
+  "success": true,
+  "data": {}
+}
+```
+
+## Eventos Socket.IO
+
+Cliente -> servidor:
+
+- `join_lobby`
+- `assign_pokemon`
+- `ready`
+- `attack`
+- `reconnect_player`
+
+Servidor -> cliente:
+
+- `lobby_status`
+- `battle_start`
+- `turn_result`
+- `battle_end`
 
 ## Estructura
 
@@ -80,108 +154,34 @@ src/
     errors/
     utils/
   sockets/
+tests/
+  unit/
+  integration/
+  http/
+  e2e/
 ```
 
-## Módulos
+## Testing
 
-### `pokemon`
+La suite actual cubre cuatro capas:
 
-Responsable del catálogo externo.
+- unit
+- integration de servicios
+- HTTP
+- E2E Socket.IO con clientes reales
 
-- `GET /api/v1/pokemon`
-- `GET /api/v1/pokemon/:id`
+Ejecutar todo:
 
-Este módulo ya consume la API externa y normaliza la respuesta mínima usada por el backend.
+```bash
+npm test
+```
 
-### `players`
+Detalle de la suite:
 
-Responsable de la persistencia y creación de jugadores.
+- [tests/README.md](./tests/README.md)
 
-Actualmente incluye:
+## Notas
 
-- esquema base de jugador
-- repositorio de acceso a datos
-- servicio para registrar jugador con nickname y `socketId`
-
-### `lobby`
-
-Responsable del flujo previo a la batalla.
-
-Actualmente incluye:
-
-- esquema base de lobby
-- repositorio de lobby
-- sockets para `join_lobby` y `ready`
-- servicios con firmas ya definidas para implementar el flujo real
-
-Pendiente en este módulo:
-
-- lobby único con máximo 2 jugadores
-- asignación aleatoria de 3 Pokémon sin repetir entre jugadores
-- transición de estados `waiting -> ready -> battling -> finished`
-
-### `battle`
-
-Responsable del combate en tiempo real.
-
-Actualmente incluye:
-
-- esquema base de batalla
-- repositorio de batalla
-- socket para `attack`
-- utilidades puras para cálculo de daño y selección del primer turno
-- servicio principal de batalla pendiente
-
-Pendiente en este módulo:
-
-- inicio automático cuando ambos jugadores estén listos
-- procesamiento atómico del ataque
-- reducción de HP
-- derrota, cambio automático de Pokémon y ganador
-- emisión de eventos de resultado
-
-## Eventos Socket.IO previstos
-
-Cliente a servidor:
-
-- `join_lobby`
-- `assign_pokemon`
-- `ready`
-- `attack`
-
-Servidor a cliente:
-
-- `lobby_status`
-- `battle_start`
-- `turn_result`
-- `battle_end`
-
-En este scaffold quedaron registrados los eventos de entrada principales (`join_lobby`, `assign_pokemon`, `ready`, `attack`) y su wiring hacia servicios.
-
-## Estado actual
-
-Implementado:
-
-- arranque del servidor
-- middleware base
-- healthcheck
-- versionado REST
-- consumo del catálogo Pokémon
-- wiring de sockets
-- modelos iniciales de `Player`, `Lobby` y `Battle`
-- utilidades puras de daño y turno
-
-Pendiente:
-
-- reglas completas de lobby
-- sincronización de batalla
-- persistencia final del estado de combate
-- emisión completa de eventos del servidor
-- tests
-
-## Próximos pasos sugeridos
-
-1. Implementar `joinLobby` en [src/modules/lobby/services/lobby.service.js](/Users/angelmoran/Documents/albo/pokemon-stadium-lite-backend/src/modules/lobby/services/lobby.service.js).
-2. Implementar `assignRandomTeam` en [src/modules/lobby/services/team-assignment.service.js](/Users/angelmoran/Documents/albo/pokemon-stadium-lite-backend/src/modules/lobby/services/team-assignment.service.js).
-3. Completar `startBattle` y `processAttack` en [src/modules/battle/services/battle.service.js](/Users/angelmoran/Documents/albo/pokemon-stadium-lite-backend/src/modules/battle/services/battle.service.js).
-4. Definir estrategia de serialización de acciones por lobby o batalla para evitar race conditions.
+- La API externa real del catálogo devuelve más campos de los descritos en la prueba; el backend conserva `sprite`.
+- La reconexión está soportada a nivel de jugador usando `playerId`.
+- Los tests E2E y HTTP levantan servidores locales efímeros durante la suite.

@@ -9,111 +9,122 @@ const respond = (callback, payload) => {
   }
 };
 
-export const registerLobbySocketHandlers = (socket, io) => {
-  socket.on(SOCKET_EVENTS.CLIENT.JOIN_LOBBY, async (payload, callback) => {
-    try {
-      const result = await joinLobby({
-        nickname: payload?.nickname,
-        socketId: socket.id,
-      });
+export const createLobbySocketHandlers = (dependencies = {}) => {
+  const {
+    joinLobbyDependency = joinLobby,
+    reconnectPlayerDependency = reconnectPlayer,
+    assignRandomTeamDependency = assignRandomTeam,
+    markPlayerReadyDependency = markPlayerReady,
+  } = dependencies;
 
-      socket.join(result.lobbyId);
-      io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
+  return (socket, io) => {
+    socket.on(SOCKET_EVENTS.CLIENT.JOIN_LOBBY, async (payload, callback) => {
+      try {
+        const result = await joinLobbyDependency({
+          nickname: payload?.nickname,
+          socketId: socket.id,
+        });
 
-      respond(callback, {
-        ok: true,
-        data: result,
-      });
-    } catch (error) {
-      respond(callback, {
-        ok: false,
-        message: error.message,
-      });
-    }
-  });
+        socket.join(result.lobbyId);
+        io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
 
-  socket.on(SOCKET_EVENTS.CLIENT.RECONNECT_PLAYER, async (payload, callback) => {
-    try {
-      const result = await reconnectPlayer({
-        playerId: payload?.playerId,
-        socketId: socket.id,
-      });
+        respond(callback, {
+          ok: true,
+          data: result,
+        });
+      } catch (error) {
+        respond(callback, {
+          ok: false,
+          message: error.message,
+        });
+      }
+    });
 
-      if (result.previousSocketId && result.previousSocketId !== socket.id) {
-        const previousSocket = io.sockets.sockets.get(result.previousSocketId);
+    socket.on(SOCKET_EVENTS.CLIENT.RECONNECT_PLAYER, async (payload, callback) => {
+      try {
+        const result = await reconnectPlayerDependency({
+          playerId: payload?.playerId,
+          socketId: socket.id,
+        });
 
-        if (previousSocket) {
-          previousSocket.disconnect(true);
+        if (result.previousSocketId && result.previousSocketId !== socket.id) {
+          const previousSocket = io.sockets.sockets.get(result.previousSocketId);
+
+          if (previousSocket) {
+            previousSocket.disconnect(true);
+          }
         }
+
+        socket.join(result.lobbyId);
+        socket.emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
+
+        if (result.battleState) {
+          const serverEvent =
+            result.battleState.status === BATTLE_STATUS.FINISHED
+              ? SOCKET_EVENTS.SERVER.BATTLE_END
+              : SOCKET_EVENTS.SERVER.BATTLE_START;
+
+          socket.emit(serverEvent, result.battleState);
+        }
+
+        respond(callback, {
+          ok: true,
+          data: result,
+        });
+      } catch (error) {
+        respond(callback, {
+          ok: false,
+          message: error.message,
+        });
       }
+    });
 
-      socket.join(result.lobbyId);
-      socket.emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
+    socket.on(SOCKET_EVENTS.CLIENT.ASSIGN_POKEMON, async (payload, callback) => {
+      try {
+        const result = await assignRandomTeamDependency({
+          lobbyId: payload?.lobbyId,
+          playerId: payload?.playerId,
+        });
 
-      if (result.battleState) {
-        const serverEvent =
-          result.battleState.status === BATTLE_STATUS.FINISHED
-            ? SOCKET_EVENTS.SERVER.BATTLE_END
-            : SOCKET_EVENTS.SERVER.BATTLE_START;
+        io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
 
-        socket.emit(serverEvent, result.battleState);
+        respond(callback, {
+          ok: true,
+          data: result,
+        });
+      } catch (error) {
+        respond(callback, {
+          ok: false,
+          message: error.message,
+        });
       }
+    });
 
-      respond(callback, {
-        ok: true,
-        data: result,
-      });
-    } catch (error) {
-      respond(callback, {
-        ok: false,
-        message: error.message,
-      });
-    }
-  });
+    socket.on(SOCKET_EVENTS.CLIENT.READY, async (payload, callback) => {
+      try {
+        const result = await markPlayerReadyDependency({
+          lobbyId: payload?.lobbyId,
+          playerId: payload?.playerId,
+        });
 
-  socket.on(SOCKET_EVENTS.CLIENT.ASSIGN_POKEMON, async (payload, callback) => {
-    try {
-      const result = await assignRandomTeam({
-        lobbyId: payload?.lobbyId,
-        playerId: payload?.playerId,
-      });
+        io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
 
-      io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
+        if (result.battleStart) {
+          io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.BATTLE_START, result.battleStart);
+        }
 
-      respond(callback, {
-        ok: true,
-        data: result,
-      });
-    } catch (error) {
-      respond(callback, {
-        ok: false,
-        message: error.message,
-      });
-    }
-  });
-
-  socket.on(SOCKET_EVENTS.CLIENT.READY, async (payload, callback) => {
-    try {
-      const result = await markPlayerReady({
-        lobbyId: payload?.lobbyId,
-        playerId: payload?.playerId,
-      });
-
-      io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
-
-      if (result.battleStart) {
-        io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.BATTLE_START, result.battleStart);
+        respond(callback, {
+          ok: true,
+          data: result,
+        });
+      } catch (error) {
+        respond(callback, {
+          ok: false,
+          message: error.message,
+        });
       }
-
-      respond(callback, {
-        ok: true,
-        data: result,
-      });
-    } catch (error) {
-      respond(callback, {
-        ok: false,
-        message: error.message,
-      });
-    }
-  });
+    });
+  };
 };
+
+export const registerLobbySocketHandlers = createLobbySocketHandlers();

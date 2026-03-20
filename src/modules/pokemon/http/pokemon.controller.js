@@ -2,25 +2,39 @@ import { asyncHandler } from '../../../shared/utils/async-handler.js';
 import { buildSuccessResponse } from '../../../shared/utils/api-response.js';
 import { getPokemonById, listPokemon } from '../services/pokemon.service.js';
 
-export const getPokemonList = asyncHandler(async (_request, response) => {
-  const pokemon = await listPokemon();
+export const createPokemonController = (dependencies = {}) => {
+  const {
+    listPokemonDependency = listPokemon,
+    getPokemonByIdDependency = getPokemonById,
+  } = dependencies;
 
-  response.json(
-    buildSuccessResponse({
-      data: pokemon,
-      meta: {
-        total: pokemon.length,
-      },
-    }),
-  );
-});
+  const getPokemonList = asyncHandler(async (_request, response) => {
+    const pokemon = await listPokemonDependency();
 
-export const getPokemonDetail = asyncHandler(async (request, response) => {
-  const pokemon = await getPokemonById(request.params.id);
+    response.json(
+      buildSuccessResponse({
+        data: pokemon,
+        meta: {
+          total: pokemon.length,
+        },
+      }),
+    );
+  });
 
-  response.json(
-    buildSuccessResponse({
-      data: pokemon,
-    }),
-  );
-});
+  const getPokemonDetail = asyncHandler(async (request, response) => {
+    const pokemon = await getPokemonByIdDependency(request.params.id);
+
+    response.json(
+      buildSuccessResponse({
+        data: pokemon,
+      }),
+    );
+  });
+
+  return {
+    getPokemonList,
+    getPokemonDetail,
+  };
+};
+
+export const { getPokemonList, getPokemonDetail } = createPokemonController();

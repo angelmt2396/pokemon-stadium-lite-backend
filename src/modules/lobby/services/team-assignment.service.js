@@ -7,7 +7,7 @@ import { normalizeLobbyStatusPayload } from './lobby.service.js';
 
 const LOBBY_LOCK_KEY = 'single-lobby';
 
-const createTeamSelection = (catalog, amount) => {
+export const createTeamSelection = (catalog, amount) => {
   const pool = [...catalog];
   const selected = [];
 
@@ -19,64 +19,84 @@ const createTeamSelection = (catalog, amount) => {
   return selected;
 };
 
-export const assignRandomTeam = async ({ lobbyId, playerId }) =>
-  runSerialized(LOBBY_LOCK_KEY, async () => {
-    if (!lobbyId || !playerId) {
-      throw new AppError('lobbyId and playerId are required', 400);
-    }
+export const createTeamAssignmentService = (dependencies = {}) => {
+  const {
+    findLobbyByIdDependency = findLobbyById,
+    saveLobbyDependency = saveLobby,
+    listPokemonDependency = listPokemon,
+    runSerializedDependency = runSerialized,
+    normalizeLobbyStatusPayloadDependency = normalizeLobbyStatusPayload,
+  } = dependencies;
 
-    const lobby = await findLobbyById(lobbyId);
-
-    if (!lobby) {
-      throw new AppError('Lobby not found', 404);
-    }
-
-    const currentPlayer = lobby.players.find((player) => String(player.playerId) === String(playerId));
-
-    if (!currentPlayer) {
-      throw new AppError('Player does not belong to the lobby', 404);
-    }
-
-    if (lobby.status === LOBBY_STATUS.BATTLING || lobby.status === LOBBY_STATUS.FINISHED) {
-      throw new AppError('Lobby is not accepting team assignment', 409);
-    }
-
-    if (lobby.players.length < 2) {
-      throw new AppError('Two players are required before assigning pokemon', 409);
-    }
-
-    const playersAlreadyAssigned = lobby.players.every((player) => player.team.length === 3);
-
-    if (!playersAlreadyAssigned) {
-      const catalog = await listPokemon();
-
-      if (catalog.length < 6) {
-        throw new AppError('Pokemon catalog does not contain enough entries', 500);
+  const assignRandomTeam = async ({ lobbyId, playerId }) =>
+    runSerializedDependency(LOBBY_LOCK_KEY, async () => {
+      if (!lobbyId || !playerId) {
+        throw new AppError('lobbyId and playerId are required', 400);
       }
 
-      const selectedPokemon = createTeamSelection(catalog, 6);
+      const lobby = await findLobbyByIdDependency(lobbyId);
 
-      lobby.players[0].team = selectedPokemon.slice(0, 3).map((pokemon) => ({
-        pokemonId: pokemon.id,
-        name: pokemon.name,
-      }));
-      lobby.players[1].team = selectedPokemon.slice(3, 6).map((pokemon) => ({
-        pokemonId: pokemon.id,
-        name: pokemon.name,
-      }));
+      if (!lobby) {
+        throw new AppError('Lobby not found', 404);
+      }
 
-      await saveLobby(lobby);
-    }
+      const currentPlayer = lobby.players.find((player) => String(player.playerId) === String(playerId));
 
-    const updatedPlayer = lobby.players.find((player) => String(player.playerId) === String(playerId));
+      if (!currentPlayer) {
+        throw new AppError('Player does not belong to the lobby', 404);
+      }
 
-    return {
-      lobbyId: lobby.id,
-      playerId: String(updatedPlayer.playerId),
-      team: updatedPlayer.team.map((pokemon) => ({
-        pokemonId: pokemon.pokemonId,
-        name: pokemon.name,
-      })),
-      lobbyStatus: normalizeLobbyStatusPayload(lobby),
-    };
-  });
+      if (lobby.status !== LOBBY_STATUS.WAITING) {
+        throw new AppError('Lobby is not accepting team assignment', 409);
+      }
+
+      if (lobby.players.length < 2) {
+        throw new AppError('Two players are required before assigning pokemon', 409);
+      }
+
+      if (lobby.players.some((player) => player.ready)) {
+        throw new AppError('Team assignment is locked once a player is ready', 409);
+      }
+
+      const playersAlreadyAssigned = lobby.players.every((player) => player.team.length === 3);
+
+      if (!playersAlreadyAssigned) {
+        const catalog = await listPokemonDependency();
+
+        if (catalog.length < 6) {
+          throw new AppError('Pokemon catalog does not contain enough entries', 500);
+        }
+
+        const selectedPokemon = createTeamSelection(catalog, 6);
+
+        lobby.players[0].team = selectedPokemon.slice(0, 3).map((pokemon) => ({
+          pokemonId: pokemon.id,
+          name: pokemon.name,
+        }));
+        lobby.players[1].team = selectedPokemon.slice(3, 6).map((pokemon) => ({
+          pokemonId: pokemon.id,
+          name: pokemon.name,
+        }));
+
+        await saveLobbyDependency(lobby);
+      }
+
+      const updatedPlayer = lobby.players.find((player) => String(player.playerId) === String(playerId));
+
+      return {
+        lobbyId: lobby.id,
+        playerId: String(updatedPlayer.playerId),
+        team: updatedPlayer.team.map((pokemon) => ({
+          pokemonId: pokemon.pokemonId,
+          name: pokemon.name,
+        })),
+        lobbyStatus: normalizeLobbyStatusPayloadDependency(lobby),
+      };
+    });
+
+  return {
+    assignRandomTeam,
+  };
+};
+
+export const { assignRandomTeam } = createTeamAssignmentService();
