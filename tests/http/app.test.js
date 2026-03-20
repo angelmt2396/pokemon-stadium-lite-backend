@@ -42,3 +42,55 @@ test('unknown routes return the standard 404 envelope', async () => {
     await stopTestServer(server);
   }
 });
+
+test('GET /docs/openapi.json exposes the OpenAPI document', async () => {
+  const app = createApp();
+  const { server, baseUrl } = await startTestServer(app);
+
+  try {
+    const response = await fetch(`${baseUrl}/docs/openapi.json`);
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.openapi, '3.1.0');
+    assert.ok(body.paths['/health']);
+    assert.ok(body.paths['/api/v1/pokemon']);
+    assert.ok(body.paths['/api/v1/pokemon/{id}']);
+  } finally {
+    await stopTestServer(server);
+  }
+});
+
+test('GET /docs returns Swagger UI', async () => {
+  const app = createApp();
+  const { server, baseUrl } = await startTestServer(app);
+
+  try {
+    const response = await fetch(`${baseUrl}/docs/`);
+    const body = await response.text();
+
+    assert.equal(response.status, 200);
+    assert.match(body, /<div id="swagger-ui"><\/div>/i);
+    assert.match(body, /Pokemon Stadium Lite Backend Docs/i);
+  } finally {
+    await stopTestServer(server);
+  }
+});
+
+test('GET /documentation returns the consolidated HTML documentation page', async () => {
+  const app = createApp();
+  const { server, baseUrl } = await startTestServer(app);
+
+  try {
+    const response = await fetch(`${baseUrl}/documentation`);
+    const body = await response.text();
+
+    assert.equal(response.status, 200);
+    assert.match(body, /Pokemon Stadium Lite Backend Documentation/i);
+    assert.match(body, /\/docs\/openapi\.json/i);
+    assert.match(body, /Socket\.IO Contracts/i);
+    assert.match(body, /join_lobby \/ search_match/i);
+  } finally {
+    await stopTestServer(server);
+  }
+});

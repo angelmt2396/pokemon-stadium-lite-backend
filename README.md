@@ -76,48 +76,27 @@ npm run test:e2e
 
 ## API REST
 
-### `GET /health`
+Swagger UI:
 
-Respuesta:
+- `GET /docs`
 
-```json
-{
-  "success": true,
-  "data": {
-    "status": "ok",
-    "service": "pokemon-stadium-lite-backend"
-  }
-}
-```
+Spec OpenAPI cruda:
 
-### `GET /api/v1/pokemon`
+- `GET /docs/openapi.json`
 
-Respuesta:
+Portal HTML consolidado:
 
-```json
-{
-  "success": true,
-  "data": [],
-  "meta": {
-    "total": 0
-  }
-}
-```
+- `GET /documentation`
 
-### `GET /api/v1/pokemon/:id`
+Rutas incluidas:
 
-Respuesta:
+- `GET /health`
+- `GET /api/v1/pokemon`
+- `GET /api/v1/pokemon/:id`
 
-```json
-{
-  "success": true,
-  "data": {}
-}
-```
+## Socket.IO
 
-## Eventos Socket.IO
-
-Cliente -> servidor:
+Eventos cliente -> servidor:
 
 - `join_lobby`
 - `search_match`
@@ -127,7 +106,7 @@ Cliente -> servidor:
 - `attack`
 - `reconnect_player`
 
-Servidor -> cliente:
+Eventos servidor -> cliente:
 
 - `search_status`
 - `match_found`
@@ -135,6 +114,10 @@ Servidor -> cliente:
 - `battle_start`
 - `turn_result`
 - `battle_end`
+
+Contrato detallado:
+
+- [docs/socket-contracts.md](./docs/socket-contracts.md)
 
 ## Estructura
 

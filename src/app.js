@@ -1,8 +1,11 @@
 import cors from 'cors';
 import express from 'express';
+import swaggerUi from 'swagger-ui-express';
 
 import apiV1Router, { createApiV1Router } from './api/v1/index.js';
 import { env } from './config/env.js';
+import { buildDocumentationPage } from '../docs/documentation-page.js';
+import { openApiSpec } from '../docs/openapi.js';
 import { errorHandler } from './shared/errors/error-handler.js';
 import { requestLogger } from './shared/logger/request-logger.js';
 import { buildErrorResponse, buildSuccessResponse } from './shared/utils/api-response.js';
@@ -28,6 +31,23 @@ export const createApp = (dependencies = {}) => {
       }),
     );
   });
+
+  app.get('/docs/openapi.json', (_request, response) => {
+    response.json(openApiSpec);
+  });
+
+  app.get('/documentation', (_request, response) => {
+    response.type('html').send(buildDocumentationPage());
+  });
+
+  app.use(
+    '/docs',
+    swaggerUi.serve,
+    swaggerUi.setup(openApiSpec, {
+      explorer: true,
+      customSiteTitle: 'Pokemon Stadium Lite Backend Docs',
+    }),
+  );
 
   app.use(
     '/api/v1',
