@@ -2,6 +2,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+const runningNodeTests =
+  process.argv.includes('--test') ||
+  process.execArgv.some((arg) => arg === '--test' || arg.startsWith('--test-'));
+
 const parseClientOrigins = (value) =>
   value
     .split(',')
@@ -9,6 +13,10 @@ const parseClientOrigins = (value) =>
     .filter(Boolean);
 
 export const env = {
+  nodeEnv: process.env.NODE_ENV ?? 'development',
+  logLevel:
+    process.env.LOG_LEVEL ??
+    (process.env.NODE_ENV === 'test' || runningNodeTests ? 'silent' : 'info'),
   port: Number(process.env.PORT ?? 3000),
   clientOrigins: parseClientOrigins(
     process.env.CLIENT_ORIGIN ?? 'http://localhost:5173,http://localhost:4173',

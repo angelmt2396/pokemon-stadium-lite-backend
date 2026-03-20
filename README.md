@@ -50,10 +50,16 @@ Usa [.env.example](./.env.example) como base.
 
 ```env
 PORT=3000
+LOG_LEVEL=info
 CLIENT_ORIGIN=http://localhost:5173,http://localhost:4173
 MONGODB_URI=mongodb://127.0.0.1:27017/pokemon-stadium-lite
 POKEMON_API_BASE_URL=https://pokemon-api-92034153384.us-central1.run.app
 ```
+
+Notas:
+
+- `LOG_LEVEL` soporta: `debug`, `info`, `warn`, `error`, `silent`
+- el backend escribe logs JSON estructurados para HTTP, arranque, errores y eventos Socket.IO
 
 ## Scripts
 

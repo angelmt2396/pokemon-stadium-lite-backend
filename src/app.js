@@ -4,6 +4,7 @@ import express from 'express';
 import apiV1Router, { createApiV1Router } from './api/v1/index.js';
 import { env } from './config/env.js';
 import { errorHandler } from './shared/errors/error-handler.js';
+import { requestLogger } from './shared/logger/request-logger.js';
 import { buildErrorResponse, buildSuccessResponse } from './shared/utils/api-response.js';
 
 export const createApp = (dependencies = {}) => {
@@ -15,6 +16,7 @@ export const createApp = (dependencies = {}) => {
     }),
   );
   app.use(express.json());
+  app.use(requestLogger);
 
   app.get('/health', (_request, response) => {
     response.json(

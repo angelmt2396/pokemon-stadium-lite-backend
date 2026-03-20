@@ -1,5 +1,6 @@
 import { createBattleSocketHandlers, registerBattleSocketHandlers } from '../modules/battle/socket/battle.socket.js';
 import { createLobbySocketHandlers, registerLobbySocketHandlers } from '../modules/lobby/socket/lobby.socket.js';
+import { logger } from '../shared/logger/logger.js';
 
 export const createSocketHandlersRegistrar = (dependencies = {}) => {
   const registerLobbyHandlers =
@@ -19,6 +20,17 @@ export const createSocketHandlersRegistrar = (dependencies = {}) => {
 
   return (io) => {
     io.on('connection', (socket) => {
+      logger.info('socket_connected', {
+        socketId: socket.id,
+      });
+
+      socket.on('disconnect', (reason) => {
+        logger.info('socket_disconnected', {
+          socketId: socket.id,
+          reason,
+        });
+      });
+
       registerLobbyHandlers(socket, io);
       registerBattleHandlers(socket, io);
     });
