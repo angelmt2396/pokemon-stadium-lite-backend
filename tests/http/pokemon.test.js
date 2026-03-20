@@ -82,6 +82,36 @@ test('GET /api/v1/pokemon/:id returns the wrapped pokemon detail payload', async
   }
 });
 
+test('GET /api/v1/pokemon/:id rejects invalid ids before hitting the service', async () => {
+  let called = false;
+  const app = createApp({
+    listPokemonDependency: async () => pokemonList,
+    getPokemonByIdDependency: async () => {
+      called = true;
+      return null;
+    },
+  });
+  const { server, baseUrl } = await startTestServer(app);
+
+  try {
+    const response = await fetch(`${baseUrl}/api/v1/pokemon/not-a-number`);
+    const body = await response.json();
+
+    assert.equal(response.status, 400);
+    assert.deepEqual(body, {
+      success: false,
+      message: 'id must be a number',
+      details: {
+        field: 'id',
+        reason: 'invalid_type',
+      },
+    });
+    assert.equal(called, false);
+  } finally {
+    await stopTestServer(server);
+  }
+});
+
 test('GET /api/v1/pokemon propagates AppError responses through the shared error handler', async () => {
   const app = createApp({
     listPokemonDependency: async () => {

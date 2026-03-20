@@ -9,6 +9,7 @@ Base namespace:
 Regla general de acknowledgements:
 
 - todos los eventos cliente -> servidor aceptan callback opcional
+- todos los payloads se validan antes de tocar la lógica de negocio
 - respuesta exitosa:
 
 ```json
@@ -26,6 +27,32 @@ Regla general de acknowledgements:
   "message": "Human readable error"
 }
 ```
+
+Ejemplo de error de validación:
+
+```json
+{
+  "ok": false,
+  "message": "playerId is required"
+}
+```
+
+## Reglas de validación
+
+- `nickname`
+  - string requerido
+  - se aplica `trim`
+  - no puede quedar vacío
+  - máximo 30 caracteres
+- `playerId`
+  - string requerido
+  - no puede quedar vacío
+- `lobbyId`
+  - string requerido
+  - no puede quedar vacío
+- `battleId`
+  - string requerido
+  - no puede quedar vacío
 
 ## Cliente -> servidor
 
@@ -68,6 +95,7 @@ Notas:
 
 - `join_lobby` mantiene compatibilidad con el flujo original
 - en escenarios multi-lobby, busca el lobby `waiting` mas antiguo con espacio
+- si `nickname` llega vacío o inválido, responde error de validación por ack
 
 ### `search_match`
 
@@ -116,6 +144,7 @@ Restricciones:
 
 - solo funciona cuando el jugador sigue solo en un lobby `waiting`
 - si ya fue emparejado, responde error
+- si `playerId` falta, responde error de validación por ack
 
 ### `assign_pokemon`
 
@@ -237,6 +266,7 @@ Restricciones:
 
 - solo puede atacar el jugador cuyo turno esta activo
 - si la batalla ya termino o el `battleId` no existe, responde error
+- si falta `battleId` o `playerId`, responde error de validación por ack
 
 ### `reconnect_player`
 
@@ -427,6 +457,14 @@ Estados posibles de lobby:
 - `Player not found`
 - `Battle not found`
 
+## Errores de validación comunes
+
+- `nickname is required`
+- `nickname must be at most 30 characters`
+- `playerId is required`
+- `lobbyId is required`
+- `battleId is required`
+
 ## Alcance
 
 Esta documentacion cubre el contrato actual implementado en el backend.
@@ -437,4 +475,3 @@ No cubre:
 - autorizacion
 - namespaces adicionales de Socket.IO
 - versionado de eventos
-

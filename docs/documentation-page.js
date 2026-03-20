@@ -338,6 +338,19 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
               message: 'Route not found',
             })}</pre>
           </article>
+
+          <article class="card">
+            <h3>Validation error example</h3>
+            <p>Returned when the route parameter is invalid before hitting the service layer.</p>
+            <pre>${renderJson({
+              success: false,
+              message: 'id must be a number',
+              details: {
+                field: 'id',
+                reason: 'invalid_type',
+              },
+            })}</pre>
+          </article>
         </div>
       </section>
 
@@ -585,6 +598,14 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
           </article>
 
           <article class="card">
+            <h3>Validation ack</h3>
+            <pre>${renderJson({
+              ok: false,
+              message: 'playerId is required',
+            })}</pre>
+          </article>
+
+          <article class="card">
             <h3>Cancel search ack</h3>
             <pre>${renderJson({
               ok: true,
@@ -782,6 +803,9 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
             Full Socket.IO contract with payload examples and business errors is also available in
             <a href="/documentation#socket-io">this page</a> and in the repository file
             <code>docs/socket-contracts.md</code>.
+          </p>
+          <p class="footnote">
+            Input validation is performed before business logic in both REST and Socket.IO handlers.
           </p>
         </div>
       </section>

@@ -7,6 +7,7 @@ El proyecto está implementado como un monolito modular en JavaScript con:
 - Express para HTTP
 - Socket.IO para tiempo real
 - MongoDB con Mongoose para persistencia
+- validación de entrada con `zod`
 - matchmaking con múltiples lobbies concurrentes
 - catálogo Pokémon consumido desde proveedor externo
 
@@ -32,6 +33,7 @@ Implementado:
 - cálculo de daño y cambio automático de Pokémon
 - determinación de ganador
 - serialización de acciones para evitar race conditions básicas
+- validación de payloads HTTP y Socket.IO antes de llegar a la lógica de negocio
 
 ## Requisitos
 
@@ -94,6 +96,11 @@ Rutas incluidas:
 - `GET /api/v1/pokemon`
 - `GET /api/v1/pokemon/:id`
 
+Notas:
+
+- `GET /api/v1/pokemon/:id` devuelve `400` si `id` no es un entero positivo válido
+- `/documentation` resume contratos REST y Socket.IO con ejemplos de requests, acks y eventos
+
 ## Socket.IO
 
 Eventos cliente -> servidor:
@@ -118,6 +125,11 @@ Eventos servidor -> cliente:
 Contrato detallado:
 
 - [docs/socket-contracts.md](./docs/socket-contracts.md)
+
+Notas:
+
+- los payloads de entrada se validan con `zod` antes de tocar la capa de negocio
+- los errores de validación en Socket.IO responden vía ack con `{ "ok": false, "message": "..." }`
 
 ## Estructura
 
@@ -181,4 +193,5 @@ Detalle de la suite:
 
 - La API externa real del catálogo devuelve más campos de los descritos en la prueba; el backend conserva `sprite`.
 - La reconexión está soportada a nivel de jugador usando `playerId`.
+- La validación de entrada actual se implementa con `zod` en HTTP y Socket.IO.
 - Los tests E2E y HTTP levantan servidores locales efímeros durante la suite.

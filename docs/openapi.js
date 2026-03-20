@@ -83,6 +83,8 @@ export const openApiSpec = {
       get: {
         tags: ['Pokemon'],
         summary: 'Obtiene el detalle de un Pokemon por id',
+        description:
+          'Valida el parametro de entrada antes de consultar el proveedor. El id debe ser un entero positivo.',
         parameters: [
           {
             name: 'id',
@@ -97,6 +99,28 @@ export const openApiSpec = {
           },
         ],
         responses: {
+          400: {
+            description: 'Parametro de entrada invalido',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ValidationErrorResponse',
+                },
+                examples: {
+                  invalidId: {
+                    value: {
+                      success: false,
+                      message: 'id must be a number',
+                      details: {
+                        field: 'id',
+                        reason: 'invalid_type',
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           200: {
             description: 'Detalle obtenido correctamente',
             content: {
@@ -288,7 +312,38 @@ export const openApiSpec = {
         },
         required: ['success', 'message'],
       },
+      ValidationErrorResponse: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          success: {
+            type: 'boolean',
+            const: false,
+          },
+          message: {
+            type: 'string',
+            example: 'id must be a number',
+          },
+          details: {
+            type: 'object',
+            additionalProperties: false,
+            nullable: true,
+            properties: {
+              field: {
+                type: 'string',
+                nullable: true,
+                example: 'id',
+              },
+              reason: {
+                type: 'string',
+                example: 'invalid_type',
+              },
+            },
+            required: ['field', 'reason'],
+          },
+        },
+        required: ['success', 'message', 'details'],
+      },
     },
   },
 };
-

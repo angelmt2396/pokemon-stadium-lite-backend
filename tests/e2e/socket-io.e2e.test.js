@@ -369,6 +369,63 @@ test('socket flow supports cancel_search for a player still waiting alone', asyn
   }
 });
 
+test('socket flow rejects invalid payloads before business logic', async () => {
+  const harness = await createSocketHarness();
+
+  try {
+    const client = await harness.connectClient();
+
+    const cases = [
+      {
+        event: SOCKET_EVENTS.CLIENT.JOIN_LOBBY,
+        payload: { nickname: '   ' },
+        expectedMessage: 'nickname is required',
+      },
+      {
+        event: SOCKET_EVENTS.CLIENT.SEARCH_MATCH,
+        payload: {},
+        expectedMessage: 'nickname is required',
+      },
+      {
+        event: SOCKET_EVENTS.CLIENT.CANCEL_SEARCH,
+        payload: {},
+        expectedMessage: 'playerId is required',
+      },
+      {
+        event: SOCKET_EVENTS.CLIENT.RECONNECT_PLAYER,
+        payload: { playerId: '' },
+        expectedMessage: 'playerId is required',
+      },
+      {
+        event: SOCKET_EVENTS.CLIENT.ASSIGN_POKEMON,
+        payload: { playerId: 'player-1' },
+        expectedMessage: 'lobbyId is required',
+      },
+      {
+        event: SOCKET_EVENTS.CLIENT.READY,
+        payload: { lobbyId: 'lobby-1' },
+        expectedMessage: 'playerId is required',
+      },
+      {
+        event: SOCKET_EVENTS.CLIENT.ATTACK,
+        payload: { playerId: 'player-1' },
+        expectedMessage: 'battleId is required',
+      },
+    ];
+
+    for (const testCase of cases) {
+      const ack = await emitWithAck(client, testCase.event, testCase.payload);
+
+      assert.deepEqual(ack, {
+        ok: false,
+        message: testCase.expectedMessage,
+      });
+    }
+  } finally {
+    await harness.close();
+  }
+});
+
 test('socket flow rejects cancel_search once the player is already matched', async () => {
   const harness = await createSocketHarness();
 

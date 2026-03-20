@@ -11,7 +11,9 @@ Hoy cubre:
 - reglas puras de batalla
 - servicios de lobby, batalla y asignación de equipos
 - capa REST de Express
+- documentación HTTP servida por el backend
 - flujo E2E de Socket.IO con clientes reales y matchmaking multi-lobby
+- validación de payloads con `zod`
 
 ## Estructura
 
@@ -77,9 +79,13 @@ Prueba el `app` de Express levantando un servidor efímero.
 Cobertura actual:
 
 - `GET /health`
+- `GET /docs`
+- `GET /docs/openapi.json`
+- `GET /documentation`
 - `GET /api/v1/pokemon`
 - `GET /api/v1/pokemon/:id`
 - `404`
+- rechazo de `id` inválido con `400`
 - manejo de `AppError`
 
 Ventaja:
@@ -107,6 +113,7 @@ Cobertura actual:
 - creación de segundo lobby al llegar un tercer jugador
 - rechazo de ataque fuera de turno
 - rechazo de reconexión inválida
+- rechazo de payloads inválidos antes de tocar la lógica de negocio
 
 Ventaja:
 
@@ -174,6 +181,7 @@ Notas:
 - La suite usa `node:test` y `assert`.
 - Para HTTP y E2E se prefirió un servidor real efímero sobre mocks profundos.
 - Para integration se prefirió inyección de dependencias en vez de base de datos real.
+- Para validación de entradas se usa `zod` y se prueba su integración desde HTTP y Socket.IO.
 
 ## Qué no cubre todavía
 
