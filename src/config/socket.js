@@ -29,3 +29,25 @@ export const getSocketServer = () => {
 
   return ioInstance;
 };
+
+export const closeSocketServer = async () =>
+  new Promise((resolve, reject) => {
+    if (!ioInstance) {
+      resolve(false);
+      return;
+    }
+
+    const currentIo = ioInstance;
+    ioInstance = null;
+
+    currentIo.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      logger.info('socket_server_closed');
+
+      resolve(true);
+    });
+  });

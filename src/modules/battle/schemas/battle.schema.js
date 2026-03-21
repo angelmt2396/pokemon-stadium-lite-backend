@@ -121,4 +121,7 @@ const battleSchema = new mongoose.Schema(
   },
 );
 
+battleSchema.index({ lobbyId: 1, createdAt: -1 });
+battleSchema.index({ currentTurnPlayerId: 1 });
+
 export const BattleModel = mongoose.models.Battle || mongoose.model('Battle', battleSchema);

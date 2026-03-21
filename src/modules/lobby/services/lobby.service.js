@@ -110,22 +110,27 @@ export const createLobbyService = (dependencies = {}) => {
 
       return {
         playerId: player.id,
+        reconnectToken: player.reconnectToken,
         lobbyId: lobby.id,
         status: lobby.status,
         lobbyStatus: normalizeLobbyStatusPayload(lobby),
       };
     });
 
-  const reconnectPlayer = async ({ playerId, socketId }) =>
+  const reconnectPlayer = async ({ playerId, reconnectToken, socketId }) =>
     runSerializedDependency(playerLockKey(playerId), async () => {
-      if (!playerId || !socketId) {
-        throw new AppError('playerId and socketId are required', 400);
+      if (!playerId || !reconnectToken || !socketId) {
+        throw new AppError('playerId, reconnectToken and socketId are required', 400);
       }
 
       const player = await findPlayerByIdDependency(playerId);
 
       if (!player) {
         throw new AppError('Player not found', 404);
+      }
+
+      if (player.reconnectToken !== reconnectToken) {
+        throw new AppError('Invalid reconnect token', 403);
       }
 
       const lobby = await findLobbyByPlayerIdDependency(player.id);

@@ -20,3 +20,15 @@ export const connectDatabase = async () => {
 
   return connection;
 };
+
+export const disconnectDatabase = async () => {
+  if (mongoose.connection.readyState === 0) {
+    return false;
+  }
+
+  await mongoose.disconnect();
+
+  logger.info('database_disconnected');
+
+  return true;
+};

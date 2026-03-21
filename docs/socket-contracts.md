@@ -53,49 +53,11 @@ Ejemplo de error de validación:
 - `battleId`
   - string requerido
   - no puede quedar vacío
+- `reconnectToken`
+  - string requerido
+  - no puede quedar vacío
 
 ## Cliente -> servidor
-
-### `join_lobby`
-
-Payload:
-
-```json
-{
-  "nickname": "Ash"
-}
-```
-
-Ack exitoso:
-
-```json
-{
-  "ok": true,
-  "data": {
-    "playerId": "player-id",
-    "lobbyId": "lobby-id",
-    "status": "waiting",
-    "lobbyStatus": {
-      "lobbyId": "lobby-id",
-      "status": "waiting",
-      "players": [
-        {
-          "playerId": "player-id",
-          "nickname": "Ash",
-          "ready": false,
-          "team": []
-        }
-      ]
-    }
-  }
-}
-```
-
-Notas:
-
-- `join_lobby` mantiene compatibilidad con el flujo original
-- en escenarios multi-lobby, busca el lobby `waiting` mas antiguo con espacio
-- si `nickname` llega vacío o inválido, responde error de validación por ack
 
 ### `search_match`
 
@@ -109,8 +71,10 @@ Payload:
 
 Comportamiento:
 
-- es alias funcional de `join_lobby`
-- se recomienda como evento principal para matchmaking
+- es el evento de matchmaking del backend
+- busca el lobby `waiting` mas antiguo con espacio o crea uno nuevo
+- el ack exitoso devuelve `playerId`, `lobbyId`, `status`, `lobbyStatus` y `reconnectToken`
+- el `reconnectToken` del ack debe conservarse en cliente para `reconnect_player`
 
 ### `cancel_search`
 
@@ -274,7 +238,8 @@ Payload:
 
 ```json
 {
-  "playerId": "player-id"
+  "playerId": "player-id",
+  "reconnectToken": "reconnect-token"
 }
 ```
 
@@ -456,6 +421,7 @@ Estados posibles de lobby:
 - `Player cannot attack out of turn`
 - `Player not found`
 - `Battle not found`
+- `Invalid reconnect token`
 
 ## Errores de validación comunes
 
@@ -464,6 +430,7 @@ Estados posibles de lobby:
 - `playerId is required`
 - `lobbyId is required`
 - `battleId is required`
+- `reconnectToken is required`
 
 ## Alcance
 

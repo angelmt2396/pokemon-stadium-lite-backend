@@ -28,11 +28,10 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
   } = dependencies;
 
   return (socket, io) => {
-    const handleJoinLobby = (eventName) =>
+    const handleSearchMatch = () =>
       withSocketValidation(joinLobbyPayloadSchema, async (payload, callback) => {
         try {
-          logger.info('socket_join_lobby_received', {
-            event: eventName,
+          logger.info('socket_search_match_received', {
             socketId: socket.id,
             nickname: payload.nickname,
           });
@@ -65,16 +64,14 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
             data: result,
           });
 
-          logger.info('socket_join_lobby_completed', {
-            event: eventName,
+          logger.info('socket_search_match_completed', {
             socketId: socket.id,
             playerId: result.playerId,
             lobbyId: result.lobbyId,
             playersInLobby: result.lobbyStatus.players.length,
           });
         } catch (error) {
-          logger.warn('socket_join_lobby_failed', {
-            event: eventName,
+          logger.warn('socket_search_match_failed', {
             socketId: socket.id,
             nickname: payload.nickname,
             error: error.message,
@@ -87,11 +84,7 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
         }
       });
 
-    socket.on(SOCKET_EVENTS.CLIENT.JOIN_LOBBY, handleJoinLobby(SOCKET_EVENTS.CLIENT.JOIN_LOBBY));
-    socket.on(
-      SOCKET_EVENTS.CLIENT.SEARCH_MATCH,
-      handleJoinLobby(SOCKET_EVENTS.CLIENT.SEARCH_MATCH),
-    );
+    socket.on(SOCKET_EVENTS.CLIENT.SEARCH_MATCH, handleSearchMatch());
 
     socket.on(
       SOCKET_EVENTS.CLIENT.CANCEL_SEARCH,
@@ -148,6 +141,7 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
 
           const result = await reconnectPlayerDependency({
             playerId: payload.playerId,
+            reconnectToken: payload.reconnectToken,
             socketId: socket.id,
           });
 

@@ -94,6 +94,8 @@ test('joinLobby creates a waiting lobby and registers the first player', async (
   assert.equal(state.lobbies.length, 1);
   assert.equal(result.lobbyStatus.players.length, 1);
   assert.equal(result.lobbyStatus.players[0].nickname, 'Ash');
+  assert.equal(typeof result.reconnectToken, 'string');
+  assert.equal(result.reconnectToken.length > 0, true);
   assert.equal(state.players[0].status, 'searching');
   assert.equal(state.players[0].activeLobbyId, result.lobbyId);
 });
@@ -231,6 +233,7 @@ test('reconnectPlayer updates the socket and returns lobby state while the lobby
 
   const result = await lobbyService.reconnectPlayer({
     playerId: ash.playerId,
+    reconnectToken: ash.reconnectToken,
     socketId: 'socket-ash-new',
   });
 
@@ -267,6 +270,7 @@ test('reconnectPlayer returns the active battle snapshot when a battle is in pro
 
   const result = await lobbyService.reconnectPlayer({
     playerId: ash.playerId,
+    reconnectToken: ash.reconnectToken,
     socketId: 'socket-ash-reconnected',
   });
 
@@ -307,6 +311,7 @@ test('reconnectPlayer returns the finished battle snapshot when the battle alrea
 
   const result = await lobbyService.reconnectPlayer({
     playerId: misty.playerId,
+    reconnectToken: misty.reconnectToken,
     socketId: 'socket-misty-reconnected',
   });
 
@@ -354,6 +359,27 @@ test('cancelSearch rejects players that are already matched inside a lobby', asy
       }),
     {
       message: 'Player is not in matchmaking search',
+    },
+  );
+});
+
+test('reconnectPlayer rejects an invalid reconnect token', async () => {
+  const { lobbyService } = createServices();
+
+  const ash = await lobbyService.joinLobby({
+    nickname: 'Ash',
+    socketId: 'socket-ash',
+  });
+
+  await assert.rejects(
+    () =>
+      lobbyService.reconnectPlayer({
+        playerId: ash.playerId,
+        reconnectToken: 'invalid-token',
+        socketId: 'socket-ash-new',
+      }),
+    {
+      message: 'Invalid reconnect token',
     },
   );
 });

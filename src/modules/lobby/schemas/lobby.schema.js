@@ -65,4 +65,7 @@ const lobbySchema = new mongoose.Schema(
   },
 );
 
+lobbySchema.index({ status: 1, createdAt: 1 });
+lobbySchema.index({ 'players.playerId': 1 });
+
 export const LobbyModel = mongoose.models.Lobby || mongoose.model('Lobby', lobbySchema);

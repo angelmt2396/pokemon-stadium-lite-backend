@@ -13,6 +13,11 @@ const playerSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    reconnectToken: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     status: {
       type: String,
       enum: Object.values(PLAYER_STATUS),
@@ -28,5 +33,9 @@ const playerSchema = new mongoose.Schema(
     timestamps: true,
   },
 );
+
+playerSchema.index({ socketId: 1 }, { sparse: true });
+playerSchema.index({ reconnectToken: 1 }, { unique: true });
+playerSchema.index({ activeLobbyId: 1 });
 
 export const PlayerModel = mongoose.models.Player || mongoose.model('Player', playerSchema);

@@ -57,7 +57,6 @@ Prueba servicios con dependencias en memoria.
 
 Cobertura actual:
 
-- `join_lobby`
 - creación de múltiples lobbies `waiting`
 - nickname duplicado
 - `cancel_search`
@@ -99,7 +98,6 @@ Prueba Socket.IO con servidor y clientes reales.
 
 Cobertura actual:
 
-- `join_lobby`
 - `search_match`
 - `cancel_search`
 - `search_status`

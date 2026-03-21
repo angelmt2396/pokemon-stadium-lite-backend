@@ -10,12 +10,12 @@ const setupBattleSession = async (harness) => {
   const misty = await harness.connectClient();
 
   const ashLobbyStatus = onceEvent(ash, SOCKET_EVENTS.SERVER.LOBBY_STATUS);
-  const ashJoinAck = await emitWithAck(ash, SOCKET_EVENTS.CLIENT.JOIN_LOBBY, {
+  const ashJoinAck = await emitWithAck(ash, SOCKET_EVENTS.CLIENT.SEARCH_MATCH, {
     nickname: 'Ash',
   });
   await ashLobbyStatus;
 
-  const mistyJoinAckPromise = emitWithAck(misty, SOCKET_EVENTS.CLIENT.JOIN_LOBBY, {
+  const mistyJoinAckPromise = emitWithAck(misty, SOCKET_EVENTS.CLIENT.SEARCH_MATCH, {
     nickname: 'Misty',
   });
   await Promise.all([
@@ -67,14 +67,14 @@ const setupBattleSession = async (harness) => {
   };
 };
 
-test('socket flow covers join, assign, ready and attack with real clients', async () => {
+test('socket flow covers search_match, assign, ready and attack with real clients', async () => {
   const harness = await createSocketHarness();
   const ash = await harness.connectClient();
   const misty = await harness.connectClient();
 
   try {
     const ashLobbyStatus = onceEvent(ash, SOCKET_EVENTS.SERVER.LOBBY_STATUS);
-    const ashJoinAck = await emitWithAck(ash, SOCKET_EVENTS.CLIENT.JOIN_LOBBY, {
+    const ashJoinAck = await emitWithAck(ash, SOCKET_EVENTS.CLIENT.SEARCH_MATCH, {
       nickname: 'Ash',
     });
     const ashLobbyPayload = await ashLobbyStatus;
@@ -85,7 +85,7 @@ test('socket flow covers join, assign, ready and attack with real clients', asyn
 
     const ashLobbyUpdate = onceEvent(ash, SOCKET_EVENTS.SERVER.LOBBY_STATUS);
     const mistyLobbyUpdate = onceEvent(misty, SOCKET_EVENTS.SERVER.LOBBY_STATUS);
-    const mistyJoinAck = await emitWithAck(misty, SOCKET_EVENTS.CLIENT.JOIN_LOBBY, {
+    const mistyJoinAck = await emitWithAck(misty, SOCKET_EVENTS.CLIENT.SEARCH_MATCH, {
       nickname: 'Misty',
     });
     const [ashAfterMisty, mistyAfterJoin] = await Promise.all([ashLobbyUpdate, mistyLobbyUpdate]);
@@ -165,9 +165,13 @@ test('socket flow supports reconnect_player with a real client during battle', a
   const harness = await createSocketHarness();
 
   try {
-    const { ash, misty, battleState } = await setupBattleSession(harness);
+    const { ash, misty, ashJoinAck, mistyJoinAck, battleState } = await setupBattleSession(harness);
     const reconnectingPlayerId = battleState.currentTurnPlayerId;
     const reconnectingSocket = reconnectingPlayerId === harness.state.players[0].id ? ash : misty;
+    const reconnectToken =
+      reconnectingPlayerId === ashJoinAck.data.playerId
+        ? ashJoinAck.data.reconnectToken
+        : mistyJoinAck.data.reconnectToken;
 
     reconnectingSocket.disconnect();
 
@@ -178,6 +182,7 @@ test('socket flow supports reconnect_player with a real client during battle', a
       const battleStartAfterReconnect = onceEvent(reconnectedClient, SOCKET_EVENTS.SERVER.BATTLE_START);
       const reconnectAck = await emitWithAck(reconnectedClient, SOCKET_EVENTS.CLIENT.RECONNECT_PLAYER, {
         playerId: reconnectingPlayerId,
+        reconnectToken,
       });
       const [reconnectedLobbyStatus, reconnectedBattleState] = await Promise.all([
         lobbyStatusAfterReconnect,
@@ -225,24 +230,24 @@ test('socket flow creates a second lobby when a third player searches while the 
 
     await Promise.all([
       onceEvent(ash, SOCKET_EVENTS.SERVER.LOBBY_STATUS),
-      emitWithAck(ash, SOCKET_EVENTS.CLIENT.JOIN_LOBBY, { nickname: 'Ash' }),
+      emitWithAck(ash, SOCKET_EVENTS.CLIENT.SEARCH_MATCH, { nickname: 'Ash' }),
     ]);
 
     await Promise.all([
       onceEvent(ash, SOCKET_EVENTS.SERVER.LOBBY_STATUS),
       onceEvent(misty, SOCKET_EVENTS.SERVER.LOBBY_STATUS),
-      emitWithAck(misty, SOCKET_EVENTS.CLIENT.JOIN_LOBBY, { nickname: 'Misty' }),
+      emitWithAck(misty, SOCKET_EVENTS.CLIENT.SEARCH_MATCH, { nickname: 'Misty' }),
     ]);
 
     const brockLobbyStatus = onceEvent(brock, SOCKET_EVENTS.SERVER.LOBBY_STATUS);
-    const thirdJoinAck = await emitWithAck(brock, SOCKET_EVENTS.CLIENT.JOIN_LOBBY, {
+    const thirdJoinAck = await emitWithAck(brock, SOCKET_EVENTS.CLIENT.SEARCH_MATCH, {
       nickname: 'Brock',
     });
     const brockWaitingLobby = await brockLobbyStatus;
 
     const brockMatchedLobby = onceEvent(brock, SOCKET_EVENTS.SERVER.LOBBY_STATUS);
     const traceyMatchedLobby = onceEvent(tracey, SOCKET_EVENTS.SERVER.LOBBY_STATUS);
-    const fourthJoinAck = await emitWithAck(tracey, SOCKET_EVENTS.CLIENT.JOIN_LOBBY, {
+    const fourthJoinAck = await emitWithAck(tracey, SOCKET_EVENTS.CLIENT.SEARCH_MATCH, {
       nickname: 'Tracey',
     });
     const [brockAfterTracey, traceyAfterJoin] = await Promise.all([brockMatchedLobby, traceyMatchedLobby]);
@@ -291,49 +296,11 @@ test('socket flow rejects reconnect_player when the player id is invalid', async
 
     const reconnectAck = await emitWithAck(client, SOCKET_EVENTS.CLIENT.RECONNECT_PLAYER, {
       playerId: 'player-does-not-exist',
+      reconnectToken: 'reconnect-token-does-not-exist',
     });
 
     assert.equal(reconnectAck.ok, false);
     assert.equal(reconnectAck.message, 'Player not found');
-  } finally {
-    await harness.close();
-  }
-});
-
-test('socket flow supports search_match as an alias for join_lobby matchmaking', async () => {
-  const harness = await createSocketHarness();
-
-  try {
-    const ash = await harness.connectClient();
-    const misty = await harness.connectClient();
-
-    const ashLobbyStatus = onceEvent(ash, SOCKET_EVENTS.SERVER.LOBBY_STATUS);
-    const ashJoinAck = await emitWithAck(ash, SOCKET_EVENTS.CLIENT.SEARCH_MATCH, {
-      nickname: 'Ash',
-    });
-    await ashLobbyStatus;
-
-    const matchFoundAsh = onceEvent(ash, SOCKET_EVENTS.SERVER.MATCH_FOUND);
-    const matchFoundMisty = onceEvent(misty, SOCKET_EVENTS.SERVER.MATCH_FOUND);
-    const mistyLobbyStatus = onceEvent(misty, SOCKET_EVENTS.SERVER.LOBBY_STATUS);
-    const ashLobbyUpdate = onceEvent(ash, SOCKET_EVENTS.SERVER.LOBBY_STATUS);
-    const mistyJoinAck = await emitWithAck(misty, SOCKET_EVENTS.CLIENT.SEARCH_MATCH, {
-      nickname: 'Misty',
-    });
-    const [ashMatchedStatus, mistyMatchedStatus, ashMatchFoundPayload, mistyMatchFoundPayload] = await Promise.all([
-      ashLobbyUpdate,
-      mistyLobbyStatus,
-      matchFoundAsh,
-      matchFoundMisty,
-    ]);
-
-    assert.equal(ashJoinAck.ok, true);
-    assert.equal(mistyJoinAck.ok, true);
-    assert.equal(ashJoinAck.data.lobbyId, mistyJoinAck.data.lobbyId);
-    assert.equal(ashMatchedStatus.players.length, 2);
-    assert.equal(mistyMatchedStatus.players.length, 2);
-    assert.equal(ashMatchFoundPayload.lobbyId, mistyJoinAck.data.lobbyId);
-    assert.equal(mistyMatchFoundPayload.lobbyId, mistyJoinAck.data.lobbyId);
   } finally {
     await harness.close();
   }
@@ -377,13 +344,8 @@ test('socket flow rejects invalid payloads before business logic', async () => {
 
     const cases = [
       {
-        event: SOCKET_EVENTS.CLIENT.JOIN_LOBBY,
-        payload: { nickname: '   ' },
-        expectedMessage: 'nickname is required',
-      },
-      {
         event: SOCKET_EVENTS.CLIENT.SEARCH_MATCH,
-        payload: {},
+        payload: { nickname: '   ' },
         expectedMessage: 'nickname is required',
       },
       {
@@ -395,6 +357,11 @@ test('socket flow rejects invalid payloads before business logic', async () => {
         event: SOCKET_EVENTS.CLIENT.RECONNECT_PLAYER,
         payload: { playerId: '' },
         expectedMessage: 'playerId is required',
+      },
+      {
+        event: SOCKET_EVENTS.CLIENT.RECONNECT_PLAYER,
+        payload: { playerId: 'player-1' },
+        expectedMessage: 'reconnectToken is required',
       },
       {
         event: SOCKET_EVENTS.CLIENT.ASSIGN_POKEMON,

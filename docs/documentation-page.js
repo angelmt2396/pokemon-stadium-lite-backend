@@ -237,6 +237,149 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
         font-size: 0.95rem;
       }
 
+      .tester-grid {
+        display: grid;
+        gap: 20px;
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .tester-controls {
+        display: grid;
+        gap: 14px;
+      }
+
+      .field-grid {
+        display: grid;
+        gap: 14px;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+
+      .field {
+        display: grid;
+        gap: 8px;
+      }
+
+      .field label {
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .field input,
+      .field select,
+      .field textarea {
+        width: 100%;
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        background: #fffdf8;
+        color: var(--text);
+        padding: 12px 14px;
+        font: inherit;
+      }
+
+      .field textarea {
+        min-height: 190px;
+        resize: vertical;
+        font-family: "SFMono-Regular", "SF Mono", Consolas, "Liberation Mono", monospace;
+        font-size: 0.92rem;
+      }
+
+      .button-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+      }
+
+      .button {
+        appearance: none;
+        border: 1px solid var(--accent);
+        background: var(--accent);
+        color: #fff8ef;
+        border-radius: 999px;
+        min-height: 44px;
+        padding: 0 16px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+
+      .button.secondary {
+        background: rgba(255, 250, 242, 0.92);
+        color: var(--accent-strong);
+        border-color: var(--border);
+      }
+
+      .button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .status-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        background: var(--surface-strong);
+        color: var(--accent-strong);
+        font-weight: 700;
+      }
+
+      .status-pill::before {
+        content: '';
+        width: 10px;
+        height: 10px;
+        border-radius: 999px;
+        background: currentColor;
+        opacity: 0.75;
+      }
+
+      .status-pill.connected {
+        background: rgba(73, 134, 83, 0.14);
+        color: #2f6b3a;
+      }
+
+      .status-pill.connecting {
+        background: rgba(184, 92, 56, 0.14);
+        color: var(--accent-strong);
+      }
+
+      .status-pill.disconnected {
+        background: rgba(109, 92, 72, 0.12);
+        color: var(--muted);
+      }
+
+      .log-stack {
+        display: grid;
+        gap: 12px;
+      }
+
+      .mini-note {
+        margin: 0;
+        font-size: 0.94rem;
+      }
+
+      .template-list {
+        display: grid;
+        gap: 10px;
+      }
+
+      .template-item {
+        padding: 12px 14px;
+        border-radius: 14px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+      }
+
+      .template-item strong {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      .template-item code {
+        color: var(--accent-strong);
+        background: transparent;
+      }
+
       @media (max-width: 640px) {
         main {
           padding: 32px 16px 48px;
@@ -264,6 +407,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
           <button class="doc-tab" type="button" data-doc-target="socket-io">Socket.IO</button>
           <button class="doc-tab" type="button" data-doc-target="acknowledgements">Acknowledgements</button>
           <button class="doc-tab" type="button" data-doc-target="battle-example">Battle Example</button>
+          <button class="doc-tab" type="button" data-doc-target="try-it">Try It</button>
         </nav>
       </header>
 
@@ -361,7 +505,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
             <h3>Client to Server</h3>
             <div class="event-list">
               <div class="event-item">
-                <div class="event-name">join_lobby / search_match</div>
+                <div class="event-name">search_match</div>
                 <div class="event-note">Payload: <code>{ nickname }</code>. Creates or joins the oldest available waiting lobby.</div>
               </div>
               <div class="event-item">
@@ -382,7 +526,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
               </div>
               <div class="event-item">
                 <div class="event-name">reconnect_player</div>
-                <div class="event-note">Payload: <code>{ playerId }</code>. Rebinds the player to a new socket and restores lobby and battle state.</div>
+                <div class="event-note">Payload: <code>{ playerId, reconnectToken }</code>. Rebinds the player to a new socket and restores lobby and battle state.</div>
               </div>
             </div>
           </article>
@@ -435,6 +579,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
               ok: true,
               data: {
                 playerId: 'player-1',
+                reconnectToken: 'reconnect-token-1',
                 lobbyId: 'lobby-1',
                 status: 'waiting',
                 lobbyStatus: {
@@ -451,6 +596,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                 },
               },
             })}</pre>
+            <p class="muted" style="margin-top: 12px;">Store <code>reconnectToken</code> from the matchmaking ack and send it later with <code>reconnect_player</code>.</p>
           </article>
 
           <article class="card">
@@ -504,6 +650,10 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
           <article class="card">
             <h3>Reconnect ack example</h3>
             <pre>${renderJson({
+              request: {
+                playerId: 'player-2',
+                reconnectToken: 'reconnect-token-2',
+              },
               ok: true,
               data: {
                 playerId: 'player-2',
@@ -601,7 +751,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
             <h3>Validation ack</h3>
             <pre>${renderJson({
               ok: false,
-              message: 'playerId is required',
+              message: 'reconnectToken is required',
             })}</pre>
           </article>
 
@@ -809,11 +959,365 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
           </p>
         </div>
       </section>
+
+      <section id="try-it" class="doc-panel" data-doc-panel>
+        <h2>Try It</h2>
+        <div class="tester-grid">
+          <article class="card">
+            <h3>REST Request Tester</h3>
+            <p class="mini-note">
+              Quick browser-side client for the documented REST endpoints.
+            </p>
+            <div class="tester-controls" style="margin-top: 16px;">
+              <div class="field-grid">
+                <div class="field">
+                  <label for="rest-endpoint">Endpoint</label>
+                  <select id="rest-endpoint">
+                    <option value="health">GET /health</option>
+                    <option value="pokemon-list">GET /api/v1/pokemon</option>
+                    <option value="pokemon-detail">GET /api/v1/pokemon/{id}</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="rest-pokemon-id">Pokemon id</label>
+                  <input id="rest-pokemon-id" type="text" value="25" />
+                </div>
+              </div>
+              <div class="button-row">
+                <button id="rest-send" class="button" type="button">Send REST Request</button>
+              </div>
+              <div class="log-stack">
+                <div class="field">
+                  <label for="rest-status">Result</label>
+                  <input id="rest-status" type="text" value="Waiting for request." readonly />
+                </div>
+                <div class="field">
+                  <label for="rest-output">Response body</label>
+                  <textarea id="rest-output" readonly>{}</textarea>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>Socket.IO Event Tester</h3>
+            <p class="mini-note">
+              Browser-side client that loads <code>/socket.io/socket.io.js</code>, connects to the current origin, emits one event at a time, and records server events and acknowledgements.
+            </p>
+            <div class="tester-controls" style="margin-top: 16px;">
+              <div class="button-row">
+                <span id="socket-status" class="status-pill disconnected" role="status" aria-live="polite">Disconnected</span>
+                <button id="socket-connect" class="button" type="button">Connect</button>
+                <button id="socket-disconnect" class="button secondary" type="button">Disconnect</button>
+                <button id="socket-clear-events" class="button secondary" type="button">Clear Local Log</button>
+              </div>
+              <p class="mini-note">
+                <strong>Status</strong> only reflects the embedded tester. <strong>Clear Local Log</strong> only clears the event history shown on this page and does not reset backend state.
+              </p>
+
+              <div class="field-grid">
+                <div class="field">
+                  <label for="socket-nickname">nickname</label>
+                  <input id="socket-nickname" type="text" value="Ash" />
+                </div>
+                <div class="field">
+                  <label for="socket-player-id">playerId</label>
+                  <input id="socket-player-id" type="text" value="" />
+                </div>
+                <div class="field">
+                  <label for="socket-reconnect-token">reconnectToken</label>
+                  <input id="socket-reconnect-token" type="text" value="" />
+                </div>
+                <div class="field">
+                  <label for="socket-lobby-id">lobbyId</label>
+                  <input id="socket-lobby-id" type="text" value="" />
+                </div>
+                <div class="field">
+                  <label for="socket-battle-id">battleId</label>
+                  <input id="socket-battle-id" type="text" value="" />
+                </div>
+                <div class="field">
+                  <label for="socket-event-name">Event</label>
+                  <select id="socket-event-name">
+                    <option value="search_match">search_match</option>
+                    <option value="cancel_search">cancel_search</option>
+                    <option value="reconnect_player">reconnect_player</option>
+                    <option value="assign_pokemon">assign_pokemon</option>
+                    <option value="ready">ready</option>
+                    <option value="attack">attack</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="button-row">
+                <button id="socket-template" class="button secondary" type="button">Use Template</button>
+                <button id="socket-emit" class="button" type="button">Emit Event</button>
+              </div>
+
+              <div class="field">
+                <label for="socket-example-note">Selected event guide</label>
+                <textarea id="socket-example-note" readonly></textarea>
+              </div>
+
+              <div class="field">
+                <label for="socket-payload">Payload</label>
+                <textarea id="socket-payload"></textarea>
+              </div>
+
+              <div class="field">
+                <label for="socket-ack">Last ack</label>
+                <textarea id="socket-ack" readonly>{}</textarea>
+              </div>
+
+              <div class="field">
+                <label for="socket-events-log">Server events</label>
+                <textarea id="socket-events-log" readonly>[]</textarea>
+              </div>
+            </div>
+          </article>
+
+          <article class="card">
+            <h3>Socket.IO Examples</h3>
+            <p class="mini-note">
+              Use these as a quick mental model of the full backend flow. The tester above lets you load the matching payload and then change fields like Postman.
+            </p>
+            <div class="template-list" style="margin-top: 16px;">
+              <div class="template-item">
+                <strong><code>search_match</code></strong>
+                <span>Recommended matchmaking event. Successful ack returns <code>playerId</code>, <code>lobbyId</code> and <code>reconnectToken</code>.</span>
+              </div>
+              <div class="template-item">
+                <strong><code>cancel_search</code></strong>
+                <span>Cancels matchmaking only while the player is still waiting alone. Payload: <code>{ playerId }</code></span>
+              </div>
+              <div class="template-item">
+                <strong><code>reconnect_player</code></strong>
+                <span>Requires <code>{ playerId, reconnectToken }</code> and restores lobby/battle state.</span>
+              </div>
+              <div class="template-item">
+                <strong><code>assign_pokemon</code></strong>
+                <span>Assigns random teams once the lobby has two players. Payload: <code>{ playerId, lobbyId }</code></span>
+              </div>
+              <div class="template-item">
+                <strong><code>ready</code></strong>
+                <span>Marks player ready and can trigger <code>battle_start</code>. Payload: <code>{ playerId, lobbyId }</code></span>
+              </div>
+              <div class="template-item">
+                <strong><code>attack</code></strong>
+                <span>Processes one battle turn. Payload: <code>{ playerId, battleId }</code></span>
+              </div>
+            </div>
+
+            <h3 style="margin-top: 24px;">Server Events Reference</h3>
+            <div class="template-list" style="margin-top: 16px;">
+              <div class="template-item">
+                <strong><code>search_status</code></strong>
+                <span>Emitted when a player enters or leaves matchmaking.</span>
+              </div>
+              <div class="template-item">
+                <strong><code>match_found</code></strong>
+                <span>Emitted when a lobby reaches two players.</span>
+              </div>
+              <div class="template-item">
+                <strong><code>lobby_status</code></strong>
+                <span>Lobby snapshot with players, ready flags and team summaries.</span>
+              </div>
+              <div class="template-item">
+                <strong><code>battle_start</code></strong>
+                <span>Battle snapshot with active pokemon and current turn.</span>
+              </div>
+              <div class="template-item">
+                <strong><code>turn_result</code></strong>
+                <span>Turn outcome scoped to one <code>battleId</code>.</span>
+              </div>
+              <div class="template-item">
+                <strong><code>battle_end</code></strong>
+                <span>Terminal battle state with winner.</span>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
     </main>
+    <script src="/socket.io/socket.io.js"></script>
     <script>
       (() => {
         const tabs = Array.from(document.querySelectorAll('[data-doc-target]'));
         const panels = Array.from(document.querySelectorAll('[data-doc-panel]'));
+        const restEndpoint = document.getElementById('rest-endpoint');
+        const restPokemonId = document.getElementById('rest-pokemon-id');
+        const restSend = document.getElementById('rest-send');
+        const restStatus = document.getElementById('rest-status');
+        const restOutput = document.getElementById('rest-output');
+        const socketStatus = document.getElementById('socket-status');
+        const socketConnect = document.getElementById('socket-connect');
+        const socketDisconnect = document.getElementById('socket-disconnect');
+        const socketClearEvents = document.getElementById('socket-clear-events');
+        const socketEventName = document.getElementById('socket-event-name');
+        const socketPayload = document.getElementById('socket-payload');
+        const socketExampleNote = document.getElementById('socket-example-note');
+        const socketAck = document.getElementById('socket-ack');
+        const socketEventsLog = document.getElementById('socket-events-log');
+        const socketTemplate = document.getElementById('socket-template');
+        const socketEmit = document.getElementById('socket-emit');
+        const socketNickname = document.getElementById('socket-nickname');
+        const socketPlayerId = document.getElementById('socket-player-id');
+        const socketReconnectToken = document.getElementById('socket-reconnect-token');
+        const socketLobbyId = document.getElementById('socket-lobby-id');
+        const socketBattleId = document.getElementById('socket-battle-id');
+        const serverEvents = [
+          'search_status',
+          'match_found',
+          'lobby_status',
+          'battle_start',
+          'turn_result',
+          'battle_end',
+        ];
+        const runtimeState = {
+          playerId: '',
+          reconnectToken: '',
+          lobbyId: '',
+          battleId: '',
+        };
+        let socket = null;
+        let socketEventHistory = [];
+
+        const stringify = (value) => JSON.stringify(value, null, 2);
+
+        const updateSocketStatus = (label, tone = 'disconnected') => {
+          socketStatus.textContent = label;
+          socketStatus.classList.remove('connected', 'connecting', 'disconnected');
+          socketStatus.classList.add(tone);
+        };
+
+        const syncInputsFromState = () => {
+          socketPlayerId.value = runtimeState.playerId;
+          socketReconnectToken.value = runtimeState.reconnectToken;
+          socketLobbyId.value = runtimeState.lobbyId;
+          socketBattleId.value = runtimeState.battleId;
+        };
+
+        const syncStateFromPayload = (payload) => {
+          if (!payload || typeof payload !== 'object') {
+            return;
+          }
+
+          const candidates = [payload, payload.data, payload.data?.battleStart, payload.data?.battleState];
+
+          candidates.forEach((candidate) => {
+            if (!candidate || typeof candidate !== 'object') {
+              return;
+            }
+
+            if (candidate.playerId) {
+              runtimeState.playerId = candidate.playerId;
+            }
+
+            if (candidate.reconnectToken) {
+              runtimeState.reconnectToken = candidate.reconnectToken;
+            }
+
+            if (candidate.lobbyId) {
+              runtimeState.lobbyId = candidate.lobbyId;
+            }
+
+            if (candidate.battleId) {
+              runtimeState.battleId = candidate.battleId;
+            }
+          });
+
+          syncInputsFromState();
+        };
+
+        const socketTemplates = {
+          search_match: () => ({
+            nickname: socketNickname.value.trim() || 'Ash',
+          }),
+          cancel_search: () => ({
+            playerId: socketPlayerId.value.trim(),
+          }),
+          reconnect_player: () => ({
+            playerId: socketPlayerId.value.trim(),
+            reconnectToken: socketReconnectToken.value.trim(),
+          }),
+          assign_pokemon: () => ({
+            playerId: socketPlayerId.value.trim(),
+            lobbyId: socketLobbyId.value.trim(),
+          }),
+          ready: () => ({
+            playerId: socketPlayerId.value.trim(),
+            lobbyId: socketLobbyId.value.trim(),
+          }),
+          attack: () => ({
+            playerId: socketPlayerId.value.trim(),
+            battleId: socketBattleId.value.trim(),
+          }),
+        };
+
+        const socketEventNotes = {
+          search_match:
+            'Recommended matchmaking event. Payload: { nickname }. Successful ack returns playerId, lobbyId and reconnectToken.',
+          cancel_search:
+            'Cancels matchmaking only while the player is alone in a waiting lobby. Payload: { playerId }.',
+          reconnect_player:
+            'Rebinds the player to a new socket. Requires { playerId, reconnectToken }. Successful ack may include lobbyStatus and battleState.',
+          assign_pokemon:
+            'Assigns a random team once the lobby has two players. Payload: { playerId, lobbyId }.',
+          ready:
+            'Marks one player ready. When both are ready, the ack can include battleStart and the server emits battle_start.',
+          attack:
+            'Processes one battle turn. Payload: { playerId, battleId }. Only works for the currentTurnPlayerId.',
+        };
+
+        const refreshPayloadTemplate = () => {
+          const nextTemplateFactory = socketTemplates[socketEventName.value];
+          socketPayload.value = stringify(nextTemplateFactory ? nextTemplateFactory() : {});
+          socketExampleNote.value = socketEventNotes[socketEventName.value] || '';
+        };
+
+        const pushSocketEvent = (label, payload) => {
+          socketEventHistory.unshift({
+            time: new Date().toISOString(),
+            label,
+            payload,
+          });
+          socketEventHistory = socketEventHistory.slice(0, 20);
+          socketEventsLog.value = stringify(socketEventHistory);
+          syncStateFromPayload(payload);
+        };
+
+        const ensureSocket = () => {
+          if (socket || typeof window.io !== 'function') {
+            return socket;
+          }
+
+          socket = window.io(window.location.origin, {
+            autoConnect: false,
+            reconnection: true,
+          });
+
+          socket.on('connect', () => {
+            updateSocketStatus('Connected', 'connected');
+            pushSocketEvent('system:connect', {
+              socketId: socket.id,
+            });
+          });
+
+          socket.on('disconnect', (reason) => {
+            updateSocketStatus('Disconnected', 'disconnected');
+            pushSocketEvent('system:disconnect', {
+              reason,
+            });
+          });
+
+          serverEvents.forEach((eventName) => {
+            socket.on(eventName, (payload) => {
+              pushSocketEvent(eventName, payload);
+            });
+          });
+
+          return socket;
+        };
 
         const activatePanel = (panelId, replaceHash = false) => {
           const nextPanel = panels.find((panel) => panel.id === panelId) ?? panels[0];
@@ -859,6 +1363,123 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
             activatePanel(panelId, false);
           }
         });
+
+        restSend.addEventListener('click', async () => {
+          const pokemonId = restPokemonId.value.trim() || '25';
+          const routes = {
+            health: '/health',
+            'pokemon-list': '/api/v1/pokemon',
+            'pokemon-detail': '/api/v1/pokemon/' + encodeURIComponent(pokemonId),
+          };
+          const path = routes[restEndpoint.value] || '/health';
+
+          restStatus.value = 'Loading ' + path + ' ...';
+          restOutput.value = '{}';
+
+          try {
+            const response = await fetch(path);
+            const contentType = response.headers.get('content-type') || '';
+            const body = contentType.includes('application/json')
+              ? await response.json()
+              : await response.text();
+
+            restStatus.value = response.status + ' ' + response.statusText;
+            restOutput.value = typeof body === 'string' ? body : stringify(body);
+          } catch (error) {
+            restStatus.value = 'Request failed';
+            restOutput.value = stringify({
+              message: error.message,
+            });
+          }
+        });
+
+        socketConnect.addEventListener('click', () => {
+          const client = ensureSocket();
+
+          if (!client) {
+            updateSocketStatus('Socket.IO client unavailable');
+            return;
+          }
+
+          if (!client.connected) {
+            updateSocketStatus('Connecting...', 'connecting');
+            client.connect();
+          }
+        });
+
+        socketDisconnect.addEventListener('click', () => {
+          const client = ensureSocket();
+
+          if (client?.connected) {
+            client.disconnect();
+          }
+        });
+
+        socketClearEvents.addEventListener('click', () => {
+          socketEventHistory = [];
+          socketEventsLog.value = '[]';
+        });
+
+        socketTemplate.addEventListener('click', () => {
+          refreshPayloadTemplate();
+        });
+
+        socketEventName.addEventListener('change', () => {
+          refreshPayloadTemplate();
+        });
+
+        [socketNickname, socketPlayerId, socketReconnectToken, socketLobbyId, socketBattleId].forEach((input) => {
+          input.addEventListener('change', () => {
+            runtimeState.playerId = socketPlayerId.value.trim();
+            runtimeState.reconnectToken = socketReconnectToken.value.trim();
+            runtimeState.lobbyId = socketLobbyId.value.trim();
+            runtimeState.battleId = socketBattleId.value.trim();
+            refreshPayloadTemplate();
+          });
+        });
+
+        socketEmit.addEventListener('click', () => {
+          const client = ensureSocket();
+
+          if (!client) {
+            socketAck.value = stringify({
+              ok: false,
+              message: 'Socket.IO client script is unavailable',
+            });
+            return;
+          }
+
+          if (!client.connected) {
+            socketAck.value = stringify({
+              ok: false,
+              message: 'Socket is not connected',
+            });
+            return;
+          }
+
+          let payload;
+
+          try {
+            payload = JSON.parse(socketPayload.value || '{}');
+          } catch (error) {
+            socketAck.value = stringify({
+              ok: false,
+              message: 'Invalid JSON payload',
+              details: error.message,
+            });
+            return;
+          }
+
+          client.emit(socketEventName.value, payload, (ack) => {
+            socketAck.value = stringify(ack ?? {});
+            syncStateFromPayload(ack);
+          });
+        });
+
+        syncInputsFromState();
+        refreshPayloadTemplate();
+        socketAck.value = '{}';
+        socketEventsLog.value = '[]';
       })();
     </script>
   </body>

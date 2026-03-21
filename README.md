@@ -18,7 +18,6 @@ Implementado:
 - `GET /health`
 - `GET /api/v1/pokemon`
 - `GET /api/v1/pokemon/:id`
-- `join_lobby`
 - `search_match`
 - `cancel_search`
 - `assign_pokemon`
@@ -53,6 +52,7 @@ Usa [.env.example](./.env.example) como base.
 ```env
 PORT=3000
 LOG_LEVEL=info
+SHUTDOWN_TIMEOUT_MS=10000
 CLIENT_ORIGIN=http://localhost:5173,http://localhost:4173
 MONGODB_URI=mongodb://127.0.0.1:27017/pokemon-stadium-lite
 POKEMON_API_BASE_URL=https://pokemon-api-92034153384.us-central1.run.app
@@ -61,7 +61,9 @@ POKEMON_API_BASE_URL=https://pokemon-api-92034153384.us-central1.run.app
 Notas:
 
 - `LOG_LEVEL` soporta: `debug`, `info`, `warn`, `error`, `silent`
+- `SHUTDOWN_TIMEOUT_MS` controla el tiempo máximo para cierre ordenado del proceso
 - el backend escribe logs JSON estructurados para HTTP, arranque, errores y eventos Socket.IO
+- la configuración crítica se valida al arrancar
 
 ## Scripts
 
@@ -100,12 +102,12 @@ Notas:
 
 - `GET /api/v1/pokemon/:id` devuelve `400` si `id` no es un entero positivo válido
 - `/documentation` resume contratos REST y Socket.IO con ejemplos de requests, acks y eventos
+- `/documentation` incluye un probador ligero de endpoints REST y eventos Socket.IO desde el navegador
 
 ## Socket.IO
 
 Eventos cliente -> servidor:
 
-- `join_lobby`
 - `search_match`
 - `cancel_search`
 - `assign_pokemon`
@@ -130,6 +132,8 @@ Notas:
 
 - los payloads de entrada se validan con `zod` antes de tocar la capa de negocio
 - los errores de validación en Socket.IO responden vía ack con `{ "ok": false, "message": "..." }`
+- `reconnect_player` requiere `playerId` y `reconnectToken`
+- `search_match` devuelve `reconnectToken` en el ack exitoso
 
 ## Estructura
 
@@ -192,6 +196,8 @@ Detalle de la suite:
 ## Notas
 
 - La API externa real del catálogo devuelve más campos de los descritos en la prueba; el backend conserva `sprite`.
-- La reconexión está soportada a nivel de jugador usando `playerId`.
+- La reconexión ahora exige `playerId` más `reconnectToken`.
 - La validación de entrada actual se implementa con `zod` en HTTP y Socket.IO.
+- El proceso maneja `SIGTERM` y `SIGINT` con cierre ordenado de HTTP, Socket.IO y Mongo.
+- Los schemas de Mongo incluyen índices básicos para players, lobbies y battles.
 - Los tests E2E y HTTP levantan servidores locales efímeros durante la suite.

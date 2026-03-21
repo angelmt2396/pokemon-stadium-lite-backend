@@ -1,6 +1,5 @@
 export const SOCKET_EVENTS = {
   CLIENT: {
-    JOIN_LOBBY: 'join_lobby',
     SEARCH_MATCH: 'search_match',
     CANCEL_SEARCH: 'cancel_search',
     RECONNECT_PLAYER: 'reconnect_player',

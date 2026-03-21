@@ -17,6 +17,7 @@ export const createInMemoryPlayerDependencies = (state) => ({
       id: nextId(state, 'player'),
       nickname: nickname.trim(),
       socketId,
+      reconnectToken: nextId(state, 'reconnect-token'),
       status: 'idle',
       activeLobbyId: null,
     };

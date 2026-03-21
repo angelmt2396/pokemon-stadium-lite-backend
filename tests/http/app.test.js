@@ -89,7 +89,10 @@ test('GET /documentation returns the consolidated HTML documentation page', asyn
     assert.match(body, /Pokemon Stadium Lite Backend Documentation/i);
     assert.match(body, /\/docs\/openapi\.json/i);
     assert.match(body, /Socket\.IO Contracts/i);
-    assert.match(body, /join_lobby \/ search_match/i);
+    assert.match(body, /search_match/i);
+    assert.match(body, /Try It/i);
+    assert.match(body, /REST Request Tester/i);
+    assert.match(body, /Socket\.IO Event Tester/i);
   } finally {
     await stopTestServer(server);
   }
