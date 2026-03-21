@@ -964,42 +964,6 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
         <h2>Try It</h2>
         <div class="tester-grid">
           <article class="card">
-            <h3>REST Request Tester</h3>
-            <p class="mini-note">
-              Quick browser-side client for the documented REST endpoints.
-            </p>
-            <div class="tester-controls" style="margin-top: 16px;">
-              <div class="field-grid">
-                <div class="field">
-                  <label for="rest-endpoint">Endpoint</label>
-                  <select id="rest-endpoint">
-                    <option value="health">GET /health</option>
-                    <option value="pokemon-list">GET /api/v1/pokemon</option>
-                    <option value="pokemon-detail">GET /api/v1/pokemon/{id}</option>
-                  </select>
-                </div>
-                <div class="field">
-                  <label for="rest-pokemon-id">Pokemon id</label>
-                  <input id="rest-pokemon-id" type="text" value="25" />
-                </div>
-              </div>
-              <div class="button-row">
-                <button id="rest-send" class="button" type="button">Send REST Request</button>
-              </div>
-              <div class="log-stack">
-                <div class="field">
-                  <label for="rest-status">Result</label>
-                  <input id="rest-status" type="text" value="Waiting for request." readonly />
-                </div>
-                <div class="field">
-                  <label for="rest-output">Response body</label>
-                  <textarea id="rest-output" readonly>{}</textarea>
-                </div>
-              </div>
-            </div>
-          </article>
-
-          <article class="card">
             <h3>Socket.IO Event Tester</h3>
             <p class="mini-note">
               Browser-side client that loads <code>/socket.io/socket.io.js</code>, connects to the current origin, emits one event at a time, and records server events and acknowledgements.
@@ -1144,11 +1108,6 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
       (() => {
         const tabs = Array.from(document.querySelectorAll('[data-doc-target]'));
         const panels = Array.from(document.querySelectorAll('[data-doc-panel]'));
-        const restEndpoint = document.getElementById('rest-endpoint');
-        const restPokemonId = document.getElementById('rest-pokemon-id');
-        const restSend = document.getElementById('rest-send');
-        const restStatus = document.getElementById('rest-status');
-        const restOutput = document.getElementById('rest-output');
         const socketStatus = document.getElementById('socket-status');
         const socketConnect = document.getElementById('socket-connect');
         const socketDisconnect = document.getElementById('socket-disconnect');
@@ -1361,35 +1320,6 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
 
           if (panelId) {
             activatePanel(panelId, false);
-          }
-        });
-
-        restSend.addEventListener('click', async () => {
-          const pokemonId = restPokemonId.value.trim() || '25';
-          const routes = {
-            health: '/health',
-            'pokemon-list': '/api/v1/pokemon',
-            'pokemon-detail': '/api/v1/pokemon/' + encodeURIComponent(pokemonId),
-          };
-          const path = routes[restEndpoint.value] || '/health';
-
-          restStatus.value = 'Loading ' + path + ' ...';
-          restOutput.value = '{}';
-
-          try {
-            const response = await fetch(path);
-            const contentType = response.headers.get('content-type') || '';
-            const body = contentType.includes('application/json')
-              ? await response.json()
-              : await response.text();
-
-            restStatus.value = response.status + ' ' + response.statusText;
-            restOutput.value = typeof body === 'string' ? body : stringify(body);
-          } catch (error) {
-            restStatus.value = 'Request failed';
-            restOutput.value = stringify({
-              message: error.message,
-            });
           }
         });
 

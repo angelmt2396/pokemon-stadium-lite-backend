@@ -1,0 +1,37 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: pokemon-stadium-lite-mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', 'db.adminCommand({ ping: 1 })']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pokemon-stadium-lite-backend
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      LOG_LEVEL: info
+      SHUTDOWN_TIMEOUT_MS: 10000
+      CLIENT_ORIGIN: http://localhost:5173,http://localhost:4173
+      MONGODB_URI: mongodb://mongo:27017/pokemon-stadium-lite
+      POKEMON_API_BASE_URL: https://pokemon-api-92034153384.us-central1.run.app
+    ports:
+      - '3000:3000'
+
+volumes:
+  mongo_data:

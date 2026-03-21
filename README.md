@@ -37,12 +37,64 @@ Implementado:
 ## Requisitos
 
 - Node.js 18+
-- MongoDB
+- Docker + Docker Compose o MongoDB local
 
 ## Instalación
 
 ```bash
 npm install
+```
+
+## Correr en local
+
+### Opción recomendada: MongoDB con Docker Compose
+
+Desde la raíz del backend:
+
+```bash
+docker compose up --build -d
+```
+
+Esto levanta:
+
+- MongoDB en `localhost:27017`
+- backend en `http://localhost:3000`
+
+La configuración del backend dentro de Docker Compose ya queda resuelta con:
+
+- `MONGODB_URI=mongodb://mongo:27017/pokemon-stadium-lite`
+
+Para detener Mongo:
+
+```bash
+docker compose down
+```
+
+Para detener Mongo y borrar los datos locales:
+
+```bash
+docker compose down -v
+```
+
+Para reconstruir después de cambios en código:
+
+```bash
+docker compose up --build -d
+```
+
+### Opción alternativa: MongoDB ya instalado en local
+
+Si ya tienes MongoDB corriendo en tu máquina:
+
+1. asegúrate de que esté disponible en `localhost:27017`
+2. copia `.env.example` a `.env`
+3. instala dependencias
+4. arranca el backend
+
+```bash
+cp .env.example .env
+npm install
+npm run dev
 ```
 
 ## Variables de entorno
@@ -64,6 +116,7 @@ Notas:
 - `SHUTDOWN_TIMEOUT_MS` controla el tiempo máximo para cierre ordenado del proceso
 - el backend escribe logs JSON estructurados para HTTP, arranque, errores y eventos Socket.IO
 - la configuración crítica se valida al arrancar
+- el `.env.example` ya viene listo para un Mongo local en `localhost:27017`
 
 ## Scripts
 
@@ -201,3 +254,33 @@ Detalle de la suite:
 - El proceso maneja `SIGTERM` y `SIGINT` con cierre ordenado de HTTP, Socket.IO y Mongo.
 - Los schemas de Mongo incluyen índices básicos para players, lobbies y battles.
 - Los tests E2E y HTTP levantan servidores locales efímeros durante la suite.
+
+## Validación local rápida
+
+Con el backend corriendo en local, puedes validar así:
+
+1. abre [http://localhost:3000/docs](http://localhost:3000/docs)
+2. abre [http://localhost:3000/documentation](http://localhost:3000/documentation)
+3. prueba `GET /health`
+4. prueba `GET /api/v1/pokemon`
+5. usa el probador Socket.IO de `/documentation` con:
+   - `search_match`
+   - `assign_pokemon`
+   - `ready`
+   - `attack`
+
+## Docker local
+
+Archivos incluidos:
+
+- [Dockerfile](./Dockerfile)
+- [docker-compose.yml](./docker-compose.yml)
+
+Comandos principales:
+
+```bash
+docker compose up --build -d
+docker compose logs -f backend
+docker compose down
+docker compose down -v
+```
