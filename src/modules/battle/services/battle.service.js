@@ -138,6 +138,7 @@ export const createBattleService = (dependencies = {}) => {
       {
         status: PLAYER_STATUS.BATTLING,
         activeLobbyId: lobby.id,
+        activeBattleId: battle.id,
       },
     );
 
@@ -213,6 +214,7 @@ export const createBattleService = (dependencies = {}) => {
             {
               status: PLAYER_STATUS.IDLE,
               activeLobbyId: null,
+              activeBattleId: null,
             },
           );
 

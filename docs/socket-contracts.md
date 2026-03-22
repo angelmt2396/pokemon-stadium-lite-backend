@@ -6,6 +6,19 @@ Base namespace:
 
 - `io("http://localhost:3000")`
 
+Autenticacion de socket:
+
+- el cliente debe conectarse con `auth.sessionToken`
+- ejemplo:
+
+```js
+io('http://localhost:3000', {
+  auth: {
+    sessionToken: 'opaque-session-token',
+  },
+});
+```
+
 Regla general de acknowledgements:
 
 - todos los eventos cliente -> servidor aceptan callback opcional
@@ -40,13 +53,13 @@ Ejemplo de error de validación:
 ## Reglas de validación
 
 - `nickname`
-  - string requerido
+  - string opcional en `search_match`
   - se aplica `trim`
-  - no puede quedar vacío
+  - si se envia, no puede quedar vacío
   - máximo 30 caracteres
 - `playerId`
-  - string requerido
-  - no puede quedar vacío
+  - string opcional por compatibilidad en eventos autenticados
+  - si se envia, debe coincidir con el jugador autenticado por sesion
 - `lobbyId`
   - string requerido
   - no puede quedar vacío
@@ -64,26 +77,33 @@ Ejemplo de error de validación:
 Payload:
 
 ```json
-{
-  "nickname": "Ash"
-}
+{}
 ```
 
 Comportamiento:
 
 - es el evento de matchmaking del backend
+- el backend identifica al jugador desde la sesion autenticada del socket
 - busca el lobby `waiting` mas antiguo con espacio o crea uno nuevo
 - el ack exitoso devuelve `playerId`, `lobbyId`, `status`, `lobbyStatus` y `reconnectToken`
 - el `reconnectToken` del ack debe conservarse en cliente para `reconnect_player`
+
+Compatibilidad temporal:
+
+```json
+{
+  "nickname": "Ash"
+}
+```
+
+- si se envia `nickname`, el backend lo valida pero la identidad real sale de la sesion
 
 ### `cancel_search`
 
 Payload:
 
 ```json
-{
-  "playerId": "player-id"
-}
+{}
 ```
 
 Ack exitoso:
@@ -108,7 +128,7 @@ Restricciones:
 
 - solo funciona cuando el jugador sigue solo en un lobby `waiting`
 - si ya fue emparejado, responde error
-- si `playerId` falta, responde error de validación por ack
+- `playerId` puede enviarse opcionalmente, pero si viene y no coincide con la sesion autenticada, responde error
 
 ### `assign_pokemon`
 
@@ -116,7 +136,6 @@ Payload:
 
 ```json
 {
-  "playerId": "player-id",
   "lobbyId": "lobby-id"
 }
 ```
@@ -156,7 +175,6 @@ Payload:
 
 ```json
 {
-  "playerId": "player-id",
   "lobbyId": "lobby-id"
 }
 ```
@@ -210,7 +228,6 @@ Payload:
 
 ```json
 {
-  "playerId": "player-id",
   "battleId": "battle-id"
 }
 ```
@@ -230,7 +247,7 @@ Restricciones:
 
 - solo puede atacar el jugador cuyo turno esta activo
 - si la batalla ya termino o el `battleId` no existe, responde error
-- si falta `battleId` o `playerId`, responde error de validación por ack
+- si falta `battleId`, responde error de validación por ack
 
 ### `reconnect_player`
 
@@ -238,7 +255,6 @@ Payload:
 
 ```json
 {
-  "playerId": "player-id",
   "reconnectToken": "reconnect-token"
 }
 ```
@@ -438,7 +454,7 @@ Esta documentacion cubre el contrato actual implementado en el backend.
 
 No cubre:
 
-- autenticacion
+- autenticacion HTTP REST por bearer token
 - autorizacion
 - namespaces adicionales de Socket.IO
 - versionado de eventos

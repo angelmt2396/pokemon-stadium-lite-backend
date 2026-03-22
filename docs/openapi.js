@@ -18,6 +18,10 @@ export const openApiSpec = {
       description: 'Health checks del backend',
     },
     {
+      name: 'Player Sessions',
+      description: 'Sesion ligera por nickname para autenticar HTTP y Socket.IO',
+    },
+    {
       name: 'Pokemon',
       description: 'Catalogo Pokemon consumido por el backend',
     },
@@ -34,6 +38,128 @@ export const openApiSpec = {
               'application/json': {
                 schema: {
                   $ref: '#/components/schemas/HealthResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/player-sessions': {
+      post: {
+        tags: ['Player Sessions'],
+        summary: 'Crea una sesion ligera basada en nickname',
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/CreatePlayerSessionRequest',
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Sesion creada correctamente',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/PlayerSessionCreateResponse',
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Nickname invalido',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ValidationErrorResponse',
+                },
+              },
+            },
+          },
+          409: {
+            description: 'Nickname ya esta siendo usado por una sesion activa',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    '/api/v1/player-sessions/me': {
+      get: {
+        tags: ['Player Sessions'],
+        summary: 'Carga la sesion actual autenticada por bearer token',
+        security: [
+          {
+            bearerAuth: [],
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Sesion cargada correctamente',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/PlayerSessionResponse',
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Token ausente, invalido o expirado',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+        },
+      },
+      delete: {
+        tags: ['Player Sessions'],
+        summary: 'Cierra la sesion actual autenticada por bearer token',
+        security: [
+          {
+            bearerAuth: [],
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Sesion cerrada correctamente',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ClosePlayerSessionResponse',
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Token ausente, invalido o expirado',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
+                },
+              },
+            },
+          },
+          409: {
+            description: 'No se puede cerrar la sesion mientras hay una partida activa',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ErrorResponse',
                 },
               },
             },
@@ -156,6 +282,13 @@ export const openApiSpec = {
     },
   },
   components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'opaque session token',
+      },
+    },
     schemas: {
       HealthResponse: {
         type: 'object',
@@ -245,6 +378,129 @@ export const openApiSpec = {
           },
         },
         required: ['id', 'name', 'sprite', 'type', 'hp', 'attack', 'defense', 'speed'],
+      },
+      PlayerSession: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          playerId: {
+            type: 'string',
+            example: 'player-1',
+          },
+          nickname: {
+            type: 'string',
+            example: 'Ash',
+          },
+          sessionStatus: {
+            type: 'string',
+            enum: ['active', 'closed'],
+            example: 'active',
+          },
+          playerStatus: {
+            type: 'string',
+            enum: ['idle', 'searching', 'in_lobby', 'battling'],
+            example: 'idle',
+          },
+          currentLobbyId: {
+            type: 'string',
+            nullable: true,
+            example: null,
+          },
+          currentBattleId: {
+            type: 'string',
+            nullable: true,
+            example: null,
+          },
+        },
+        required: [
+          'playerId',
+          'nickname',
+          'sessionStatus',
+          'playerStatus',
+          'currentLobbyId',
+          'currentBattleId',
+        ],
+      },
+      PlayerSessionWithToken: {
+        allOf: [
+          {
+            $ref: '#/components/schemas/PlayerSession',
+          },
+          {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              sessionToken: {
+                type: 'string',
+                example: 'opaque-session-token',
+              },
+            },
+            required: ['sessionToken'],
+          },
+        ],
+      },
+      CreatePlayerSessionRequest: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          nickname: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 30,
+            example: 'Ash',
+          },
+        },
+        required: ['nickname'],
+      },
+      PlayerSessionResponse: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          success: {
+            type: 'boolean',
+            const: true,
+          },
+          data: {
+            $ref: '#/components/schemas/PlayerSession',
+          },
+        },
+        required: ['success', 'data'],
+      },
+      PlayerSessionCreateResponse: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          success: {
+            type: 'boolean',
+            const: true,
+          },
+          data: {
+            $ref: '#/components/schemas/PlayerSessionWithToken',
+          },
+        },
+        required: ['success', 'data'],
+      },
+      ClosePlayerSessionResponse: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          success: {
+            type: 'boolean',
+            const: true,
+          },
+          data: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+              closed: {
+                type: 'boolean',
+                const: true,
+              },
+            },
+            required: ['closed'],
+          },
+        },
+        required: ['success', 'data'],
       },
       PokemonListResponse: {
         type: 'object',

@@ -1,4 +1,5 @@
 import { SOCKET_EVENTS } from '../../../shared/constants/socket-events.js';
+import { getAuthenticatedSocketPlayerId } from '../../../shared/auth/session-auth.js';
 import { logger } from '../../../shared/logger/logger.js';
 import { attackPayloadSchema } from '../../../shared/validation/schemas.js';
 import { withSocketValidation } from '../../../shared/validation/socket-validation.js';
@@ -20,15 +21,17 @@ export const createBattleSocketHandlers = (dependencies = {}) => {
       SOCKET_EVENTS.CLIENT.ATTACK,
       withSocketValidation(attackPayloadSchema, async (payload, callback) => {
         try {
+          const authenticatedPlayerId = getAuthenticatedSocketPlayerId(socket, payload.playerId);
+
           logger.info('socket_attack_received', {
             socketId: socket.id,
-            playerId: payload.playerId,
+            playerId: authenticatedPlayerId,
             battleId: payload.battleId,
           });
 
           const result = await processAttackDependency({
             battleId: payload.battleId,
-            playerId: payload.playerId,
+            playerId: authenticatedPlayerId,
           });
 
           io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.TURN_RESULT, result.turnResult);
@@ -54,7 +57,7 @@ export const createBattleSocketHandlers = (dependencies = {}) => {
         } catch (error) {
           logger.warn('socket_attack_failed', {
             socketId: socket.id,
-            playerId: payload.playerId,
+            playerId: socket.data.player?.playerId ?? null,
             battleId: payload.battleId,
             error: error.message,
           });

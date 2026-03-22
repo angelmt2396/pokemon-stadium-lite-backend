@@ -32,6 +32,7 @@ const createService = () => {
       socketId: 'socket-ash',
       status: 'in_lobby',
       activeLobbyId: 'lobby-1',
+      activeBattleId: null,
     },
     {
       id: 'player-misty',
@@ -39,6 +40,7 @@ const createService = () => {
       socketId: 'socket-misty',
       status: 'in_lobby',
       activeLobbyId: 'lobby-1',
+      activeBattleId: null,
     },
   );
 
@@ -102,6 +104,8 @@ test('startBattle creates a battling snapshot and selects the first turn by spee
   assert.equal(state.lobbies[0].status, LOBBY_STATUS.BATTLING);
   assert.equal(state.players[0].status, 'battling');
   assert.equal(state.players[1].status, 'battling');
+  assert.equal(state.players[0].activeBattleId, state.battles[0].id);
+  assert.equal(state.players[1].activeBattleId, state.battles[0].id);
 });
 
 test('processAttack applies damage and passes the turn to the defender', async () => {
@@ -157,4 +161,6 @@ test('processAttack finishes the battle when the defender has no remaining pokem
   assert.equal(state.players[1].status, 'idle');
   assert.equal(state.players[0].activeLobbyId, null);
   assert.equal(state.players[1].activeLobbyId, null);
+  assert.equal(state.players[0].activeBattleId, null);
+  assert.equal(state.players[1].activeBattleId, null);
 });

@@ -16,6 +16,9 @@ El proyecto está implementado como un monolito modular en JavaScript con:
 Implementado:
 
 - `GET /health`
+- `POST /api/v1/player-sessions`
+- `GET /api/v1/player-sessions/me`
+- `DELETE /api/v1/player-sessions/me`
 - `GET /api/v1/pokemon`
 - `GET /api/v1/pokemon/:id`
 - `search_match`
@@ -25,6 +28,7 @@ Implementado:
 - `attack`
 - `reconnect_player`
 - matchmaking por orden de llegada hacia lobbies `waiting`
+- sesion ligera por nickname con `sessionToken`
 - múltiples lobbies activos al mismo tiempo
 - estados explícitos de jugador: `idle`, `searching`, `in_lobby`, `battling`
 - asignación aleatoria sin repetidos entre jugadores
@@ -148,11 +152,16 @@ Portal HTML consolidado:
 Rutas incluidas:
 
 - `GET /health`
+- `POST /api/v1/player-sessions`
+- `GET /api/v1/player-sessions/me`
+- `DELETE /api/v1/player-sessions/me`
 - `GET /api/v1/pokemon`
 - `GET /api/v1/pokemon/:id`
 
 Notas:
 
+- `POST /api/v1/player-sessions` crea una sesion ligera por nickname y devuelve `sessionToken`
+- `GET /api/v1/player-sessions/me` y `DELETE /api/v1/player-sessions/me` requieren `Authorization: Bearer <sessionToken>`
 - `GET /api/v1/pokemon/:id` devuelve `400` si `id` no es un entero positivo válido
 - `/documentation` resume contratos REST y Socket.IO con ejemplos de requests, acks y eventos
 - `/documentation` incluye un probador ligero de endpoints REST y eventos Socket.IO desde el navegador
@@ -183,10 +192,11 @@ Contrato detallado:
 
 Notas:
 
+- el socket requiere `auth.sessionToken` durante el handshake
 - los payloads de entrada se validan con `zod` antes de tocar la capa de negocio
 - los errores de validación en Socket.IO responden vía ack con `{ "ok": false, "message": "..." }`
-- `reconnect_player` requiere `playerId` y `reconnectToken`
-- `search_match` devuelve `reconnectToken` en el ack exitoso
+- `reconnect_player` requiere `reconnectToken`; `playerId` es opcional por compatibilidad y debe coincidir con la sesion
+- `search_match` usa la identidad autenticada de la sesion y devuelve `reconnectToken` en el ack exitoso
 
 ## Estructura
 

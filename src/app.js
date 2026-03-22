@@ -53,6 +53,11 @@ export const createApp = (dependencies = {}) => {
     '/api/v1',
     dependencies.apiV1RouterDependency ??
       createApiV1Router({
+        playerSessionRouterDependency: dependencies.playerSessionRouterDependency,
+        createOrRefreshSessionDependency: dependencies.createOrRefreshSessionDependency,
+        getPlayerSessionDependency: dependencies.getPlayerSessionDependency,
+        closePlayerSessionDependency: dependencies.closePlayerSessionDependency,
+        authenticatePlayerSessionDependency: dependencies.authenticatePlayerSessionDependency,
         pokemonRouterDependency: dependencies.pokemonRouterDependency,
         listPokemonDependency: dependencies.listPokemonDependency,
         getPokemonByIdDependency: dependencies.getPokemonByIdDependency,

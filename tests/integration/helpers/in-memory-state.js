@@ -12,19 +12,48 @@ const nextId = (state, prefix) => `${prefix}-${++state.sequence}`;
 const clonePayload = (payload) => structuredClone(payload);
 
 export const createInMemoryPlayerDependencies = (state) => ({
-  registerPlayer: async ({ nickname, socketId }) => {
+  createPlayer: async (payload) => {
     const player = {
       id: nextId(state, 'player'),
-      nickname: nickname.trim(),
-      socketId,
-      reconnectToken: nextId(state, 'reconnect-token'),
-      status: 'idle',
-      activeLobbyId: null,
+      nickname: payload.nickname,
+      nicknameNormalized: payload.nicknameNormalized ?? payload.nickname.trim().toLowerCase(),
+      socketId: payload.socketId ?? null,
+      reconnectToken: payload.reconnectToken ?? nextId(state, 'reconnect-token'),
+      status: payload.status ?? 'idle',
+      sessionStatus: payload.sessionStatus ?? 'closed',
+      sessionTokenHash: payload.sessionTokenHash ?? null,
+      activeLobbyId: payload.activeLobbyId ?? null,
+      activeBattleId: payload.activeBattleId ?? null,
+      lastSeenAt: payload.lastSeenAt ?? new Date(),
     };
 
     state.players.push(player);
     return player;
   },
+  registerPlayer: async ({ nickname, socketId }) => {
+    const player = {
+      id: nextId(state, 'player'),
+      nickname: nickname.trim(),
+      nicknameNormalized: nickname.trim().toLowerCase(),
+      socketId,
+      reconnectToken: nextId(state, 'reconnect-token'),
+      status: 'idle',
+      sessionStatus: 'closed',
+      sessionTokenHash: null,
+      activeLobbyId: null,
+      activeBattleId: null,
+      lastSeenAt: new Date(),
+    };
+
+    state.players.push(player);
+    return player;
+  },
+  findPlayerByNicknameNormalized: async (nicknameNormalized) =>
+    state.players.find((player) => player.nicknameNormalized === nicknameNormalized) ?? null,
+  findPlayerBySessionTokenHash: async (sessionTokenHash) =>
+    state.players.find(
+      (player) => player.sessionTokenHash === sessionTokenHash && player.sessionStatus === 'active',
+    ) ?? null,
   findPlayerById: async (playerId) => state.players.find((player) => player.id === String(playerId)) ?? null,
   updatePlayerSocket: async (playerId, socketId) => {
     const player = state.players.find((entry) => entry.id === String(playerId)) ?? null;
@@ -34,6 +63,7 @@ export const createInMemoryPlayerDependencies = (state) => ({
     }
 
     player.socketId = socketId;
+    player.lastSeenAt = new Date();
     return player;
   },
   updatePlayerState: async (playerId, payload) => {

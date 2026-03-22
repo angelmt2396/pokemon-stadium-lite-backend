@@ -1,5 +1,6 @@
 import { SOCKET_EVENTS } from '../../../shared/constants/socket-events.js';
 import { BATTLE_STATUS } from '../../../shared/constants/battle-status.js';
+import { getAuthenticatedSocketPlayerId } from '../../../shared/auth/session-auth.js';
 import { logger } from '../../../shared/logger/logger.js';
 import {
   assignPokemonPayloadSchema,
@@ -33,11 +34,12 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
         try {
           logger.info('socket_search_match_received', {
             socketId: socket.id,
-            nickname: payload.nickname,
+            playerId: socket.data.player?.playerId ?? null,
           });
 
+          const authenticatedPlayerId = getAuthenticatedSocketPlayerId(socket);
           const result = await joinLobbyDependency({
-            nickname: payload.nickname,
+            playerId: authenticatedPlayerId,
             socketId: socket.id,
           });
 
@@ -73,7 +75,7 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
         } catch (error) {
           logger.warn('socket_search_match_failed', {
             socketId: socket.id,
-            nickname: payload.nickname,
+            playerId: socket.data.player?.playerId ?? null,
             error: error.message,
           });
 
@@ -90,13 +92,15 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
       SOCKET_EVENTS.CLIENT.CANCEL_SEARCH,
       withSocketValidation(cancelSearchPayloadSchema, async (payload, callback) => {
         try {
+          const authenticatedPlayerId = getAuthenticatedSocketPlayerId(socket, payload.playerId);
+
           logger.info('socket_cancel_search_received', {
             socketId: socket.id,
-            playerId: payload.playerId,
+            playerId: authenticatedPlayerId,
           });
 
           const result = await cancelSearchDependency({
-            playerId: payload.playerId,
+            playerId: authenticatedPlayerId,
           });
 
           socket.emit(SOCKET_EVENTS.SERVER.SEARCH_STATUS, {
@@ -118,7 +122,7 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
         } catch (error) {
           logger.warn('socket_cancel_search_failed', {
             socketId: socket.id,
-            playerId: payload.playerId,
+            playerId: socket.data.player?.playerId ?? null,
             error: error.message,
           });
 
@@ -134,13 +138,15 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
       SOCKET_EVENTS.CLIENT.RECONNECT_PLAYER,
       withSocketValidation(reconnectPlayerPayloadSchema, async (payload, callback) => {
         try {
+          const authenticatedPlayerId = getAuthenticatedSocketPlayerId(socket, payload.playerId);
+
           logger.info('socket_reconnect_player_received', {
             socketId: socket.id,
-            playerId: payload.playerId,
+            playerId: authenticatedPlayerId,
           });
 
           const result = await reconnectPlayerDependency({
-            playerId: payload.playerId,
+            playerId: authenticatedPlayerId,
             reconnectToken: payload.reconnectToken,
             socketId: socket.id,
           });
@@ -179,7 +185,7 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
         } catch (error) {
           logger.warn('socket_reconnect_player_failed', {
             socketId: socket.id,
-            playerId: payload.playerId,
+            playerId: socket.data.player?.playerId ?? null,
             error: error.message,
           });
 
@@ -195,15 +201,17 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
       SOCKET_EVENTS.CLIENT.ASSIGN_POKEMON,
       withSocketValidation(assignPokemonPayloadSchema, async (payload, callback) => {
         try {
+          const authenticatedPlayerId = getAuthenticatedSocketPlayerId(socket, payload.playerId);
+
           logger.info('socket_assign_pokemon_received', {
             socketId: socket.id,
-            playerId: payload.playerId,
+            playerId: authenticatedPlayerId,
             lobbyId: payload.lobbyId,
           });
 
           const result = await assignRandomTeamDependency({
             lobbyId: payload.lobbyId,
-            playerId: payload.playerId,
+            playerId: authenticatedPlayerId,
           });
 
           io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
@@ -221,7 +229,7 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
         } catch (error) {
           logger.warn('socket_assign_pokemon_failed', {
             socketId: socket.id,
-            playerId: payload.playerId,
+            playerId: socket.data.player?.playerId ?? null,
             lobbyId: payload.lobbyId,
             error: error.message,
           });
@@ -238,15 +246,17 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
       SOCKET_EVENTS.CLIENT.READY,
       withSocketValidation(readyPayloadSchema, async (payload, callback) => {
         try {
+          const authenticatedPlayerId = getAuthenticatedSocketPlayerId(socket, payload.playerId);
+
           logger.info('socket_ready_received', {
             socketId: socket.id,
-            playerId: payload.playerId,
+            playerId: authenticatedPlayerId,
             lobbyId: payload.lobbyId,
           });
 
           const result = await markPlayerReadyDependency({
             lobbyId: payload.lobbyId,
-            playerId: payload.playerId,
+            playerId: authenticatedPlayerId,
           });
 
           io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
@@ -269,7 +279,7 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
         } catch (error) {
           logger.warn('socket_ready_failed', {
             socketId: socket.id,
-            playerId: payload.playerId,
+            playerId: socket.data.player?.playerId ?? null,
             lobbyId: payload.lobbyId,
             error: error.message,
           });

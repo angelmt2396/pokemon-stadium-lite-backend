@@ -1,8 +1,14 @@
+import { createSocketSessionAuthMiddleware } from '../shared/auth/session-auth.js';
 import { createBattleSocketHandlers, registerBattleSocketHandlers } from '../modules/battle/socket/battle.socket.js';
 import { createLobbySocketHandlers, registerLobbySocketHandlers } from '../modules/lobby/socket/lobby.socket.js';
 import { logger } from '../shared/logger/logger.js';
 
 export const createSocketHandlersRegistrar = (dependencies = {}) => {
+  const authenticateSocket =
+    dependencies.authenticateSocketDependency ??
+    createSocketSessionAuthMiddleware({
+      authenticatePlayerSessionDependency: dependencies.authenticatePlayerSessionDependency,
+    });
   const registerLobbyHandlers =
     dependencies.registerLobbyHandlersDependency ??
     createLobbySocketHandlers({
@@ -19,9 +25,12 @@ export const createSocketHandlersRegistrar = (dependencies = {}) => {
     });
 
   return (io) => {
+    io.use(authenticateSocket);
+
     io.on('connection', (socket) => {
       logger.info('socket_connected', {
         socketId: socket.id,
+        playerId: socket.data.player?.playerId ?? null,
       });
 
       socket.on('disconnect', (reason) => {

@@ -54,6 +54,8 @@ test('GET /docs/openapi.json exposes the OpenAPI document', async () => {
     assert.equal(response.status, 200);
     assert.equal(body.openapi, '3.1.0');
     assert.ok(body.paths['/health']);
+    assert.ok(body.paths['/api/v1/player-sessions']);
+    assert.ok(body.paths['/api/v1/player-sessions/me']);
     assert.ok(body.paths['/api/v1/pokemon']);
     assert.ok(body.paths['/api/v1/pokemon/{id}']);
   } finally {
@@ -90,6 +92,8 @@ test('GET /documentation returns the consolidated HTML documentation page', asyn
     assert.match(body, /\/docs\/openapi\.json/i);
     assert.match(body, /Socket\.IO Contracts/i);
     assert.match(body, /search_match/i);
+    assert.match(body, /player-sessions/i);
+    assert.match(body, /sessionToken/i);
     assert.match(body, /Try It/i);
     assert.match(body, /REST Request Tester/i);
     assert.match(body, /Socket\.IO Event Tester/i);

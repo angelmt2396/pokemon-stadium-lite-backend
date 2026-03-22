@@ -6,6 +6,7 @@ import { io as createClient } from 'socket.io-client';
 import { createBattleService } from '../../../src/modules/battle/services/battle.service.js';
 import { createTeamAssignmentService } from '../../../src/modules/lobby/services/team-assignment.service.js';
 import { createLobbyService } from '../../../src/modules/lobby/services/lobby.service.js';
+import { createPlayerSessionService } from '../../../src/modules/players/services/player-session.service.js';
 import { createSocketHandlersRegistrar } from '../../../src/sockets/register-events.js';
 import {
   createInMemoryBattleDependencies,
@@ -34,6 +35,15 @@ export const createSocketHarness = async () => {
   const playerDependencies = createInMemoryPlayerDependencies(state);
   const battleDependencies = createInMemoryBattleDependencies(state);
 
+  const playerSessionService = createPlayerSessionService({
+    runSerializedDependency: runImmediate,
+    createPlayerDependency: playerDependencies.createPlayer,
+    findPlayerByIdDependency: playerDependencies.findPlayerById,
+    findPlayerByNicknameNormalizedDependency: playerDependencies.findPlayerByNicknameNormalized,
+    findPlayerBySessionTokenHashDependency: playerDependencies.findPlayerBySessionTokenHash,
+    updatePlayerStateDependency: playerDependencies.updatePlayerState,
+  });
+
   const battleService = createBattleService({
     runSerializedDependency: runImmediate,
     findLobbyByIdDependency: lobbyDependencies.findLobbyById,
@@ -52,7 +62,6 @@ export const createSocketHarness = async () => {
     updatePlayerSocketDependency: playerDependencies.updatePlayerSocket,
     updatePlayerStateDependency: playerDependencies.updatePlayerState,
     updatePlayersStateDependency: playerDependencies.updatePlayersState,
-    registerPlayerDependency: playerDependencies.registerPlayer,
     createLobbyDependency: lobbyDependencies.createLobby,
     findLobbyByIdDependency: lobbyDependencies.findLobbyById,
     findLobbyByPlayerIdDependency: lobbyDependencies.findLobbyByPlayerId,
@@ -77,6 +86,7 @@ export const createSocketHarness = async () => {
   });
 
   const registerHandlers = createSocketHandlersRegistrar({
+    authenticatePlayerSessionDependency: playerSessionService.authenticatePlayerSession,
     joinLobbyDependency: lobbyService.joinLobby,
     cancelSearchDependency: lobbyService.cancelSearch,
     reconnectPlayerDependency: lobbyService.reconnectPlayer,
@@ -110,11 +120,15 @@ export const createSocketHarness = async () => {
   return {
     state,
     baseUrl,
-    connectClient: async () => {
+    createSession: async (nickname) => playerSessionService.createOrRefreshSession({ nickname }),
+    connectClient: async (options = {}) => {
       const client = createClient(baseUrl, {
         transports: ['websocket'],
         forceNew: true,
         reconnection: false,
+        auth: {
+          sessionToken: options.sessionToken ?? '',
+        },
       });
 
       clients.add(client);

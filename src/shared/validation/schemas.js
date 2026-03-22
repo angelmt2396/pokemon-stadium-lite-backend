@@ -21,19 +21,19 @@ export const reconnectTokenSchema = requiredTrimmedString('reconnectToken');
 
 export const joinLobbyPayloadSchema = z
   .object({
-    nickname: nicknameSchema,
+    nickname: nicknameSchema.optional(),
   })
   .strict();
 
 export const cancelSearchPayloadSchema = z
   .object({
-    playerId: playerIdSchema,
+    playerId: playerIdSchema.optional(),
   })
   .strict();
 
 export const reconnectPlayerPayloadSchema = z
   .object({
-    playerId: playerIdSchema,
+    playerId: playerIdSchema.optional(),
     reconnectToken: reconnectTokenSchema,
   })
   .strict();
@@ -41,21 +41,27 @@ export const reconnectPlayerPayloadSchema = z
 export const assignPokemonPayloadSchema = z
   .object({
     lobbyId: lobbyIdSchema,
-    playerId: playerIdSchema,
+    playerId: playerIdSchema.optional(),
   })
   .strict();
 
 export const readyPayloadSchema = z
   .object({
     lobbyId: lobbyIdSchema,
-    playerId: playerIdSchema,
+    playerId: playerIdSchema.optional(),
   })
   .strict();
 
 export const attackPayloadSchema = z
   .object({
     battleId: battleIdSchema,
-    playerId: playerIdSchema,
+    playerId: playerIdSchema.optional(),
+  })
+  .strict();
+
+export const playerSessionBodySchema = z
+  .object({
+    nickname: nicknameSchema,
   })
   .strict();
 

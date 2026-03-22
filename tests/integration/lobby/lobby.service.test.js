@@ -5,6 +5,7 @@ import { BATTLE_STATUS } from '../../../src/shared/constants/battle-status.js';
 import { LOBBY_STATUS } from '../../../src/shared/constants/lobby-status.js';
 import { createBattleService, normalizeBattleStatePayload } from '../../../src/modules/battle/services/battle.service.js';
 import { createLobbyService } from '../../../src/modules/lobby/services/lobby.service.js';
+import { createPlayerSessionService } from '../../../src/modules/players/services/player-session.service.js';
 import {
   createInMemoryBattleDependencies,
   createInMemoryLobbyDependencies,
@@ -40,13 +41,21 @@ const createServices = () => {
     getPokemonByIdDependency: async (pokemonId) => pokemonCatalogById[pokemonId],
   });
 
+  const playerSessionService = createPlayerSessionService({
+    runSerializedDependency: runImmediate,
+    createPlayerDependency: playerDependencies.createPlayer,
+    findPlayerByIdDependency: playerDependencies.findPlayerById,
+    findPlayerByNicknameNormalizedDependency: playerDependencies.findPlayerByNicknameNormalized,
+    findPlayerBySessionTokenHashDependency: playerDependencies.findPlayerBySessionTokenHash,
+    updatePlayerStateDependency: playerDependencies.updatePlayerState,
+  });
+
   const lobbyService = createLobbyService({
     runSerializedDependency: runImmediate,
     findPlayerByIdDependency: playerDependencies.findPlayerById,
     updatePlayerSocketDependency: playerDependencies.updatePlayerSocket,
     updatePlayerStateDependency: playerDependencies.updatePlayerState,
     updatePlayersStateDependency: playerDependencies.updatePlayersState,
-    registerPlayerDependency: playerDependencies.registerPlayer,
     createLobbyDependency: lobbyDependencies.createLobby,
     findLobbyByIdDependency: lobbyDependencies.findLobbyById,
     findLobbyByPlayerIdDependency: lobbyDependencies.findLobbyByPlayerId,
@@ -61,7 +70,20 @@ const createServices = () => {
     state,
     lobbyService,
     battleService,
+    playerSessionService,
   };
+};
+
+const createAuthenticatedPlayer = async (playerSessionService, nickname) =>
+  playerSessionService.createOrRefreshSession({ nickname });
+
+const createJoinedPlayer = async (lobbyService, playerSessionService, nickname, socketId) => {
+  const session = await createAuthenticatedPlayer(playerSessionService, nickname);
+
+  return lobbyService.joinLobby({
+    playerId: session.playerId,
+    socketId,
+  });
 };
 
 const assignTeamsToCurrentLobby = (state) => {
@@ -82,12 +104,9 @@ const assignTeamsToCurrentLobby = (state) => {
 };
 
 test('joinLobby creates a waiting lobby and registers the first player', async () => {
-  const { state, lobbyService } = createServices();
+  const { state, lobbyService, playerSessionService } = createServices();
 
-  const result = await lobbyService.joinLobby({
-    nickname: 'Ash',
-    socketId: 'socket-ash',
-  });
+  const result = await createJoinedPlayer(lobbyService, playerSessionService, 'Ash', 'socket-ash');
 
   assert.equal(result.status, LOBBY_STATUS.WAITING);
   assert.equal(state.players.length, 1);
@@ -100,45 +119,34 @@ test('joinLobby creates a waiting lobby and registers the first player', async (
   assert.equal(state.players[0].activeLobbyId, result.lobbyId);
 });
 
-test('joinLobby rejects duplicated nicknames in the same active lobby', async () => {
-  const { lobbyService } = createServices();
+test('joinLobby rejects players that already have an active lobby or battle', async () => {
+  const { lobbyService, playerSessionService } = createServices();
 
+  const session = await createAuthenticatedPlayer(playerSessionService, 'Ash');
   await lobbyService.joinLobby({
-    nickname: 'Ash',
+    playerId: session.playerId,
     socketId: 'socket-ash',
   });
 
   await assert.rejects(
     () =>
       lobbyService.joinLobby({
-        nickname: 'ash',
+        playerId: session.playerId,
         socketId: 'socket-other',
       }),
     {
-      message: 'Nickname is already taken in the current lobby',
+      message: 'Player already has an active lobby or battle',
     },
   );
 });
 
 test('joinLobby creates a new waiting lobby once the oldest waiting lobby is already full', async () => {
-  const { state, lobbyService } = createServices();
+  const { state, lobbyService, playerSessionService } = createServices();
 
-  const ash = await lobbyService.joinLobby({
-    nickname: 'Ash',
-    socketId: 'socket-ash',
-  });
-  const misty = await lobbyService.joinLobby({
-    nickname: 'Misty',
-    socketId: 'socket-misty',
-  });
-  const brock = await lobbyService.joinLobby({
-    nickname: 'Brock',
-    socketId: 'socket-brock',
-  });
-  const tracey = await lobbyService.joinLobby({
-    nickname: 'Tracey',
-    socketId: 'socket-tracey',
-  });
+  const ash = await createJoinedPlayer(lobbyService, playerSessionService, 'Ash', 'socket-ash');
+  const misty = await createJoinedPlayer(lobbyService, playerSessionService, 'Misty', 'socket-misty');
+  const brock = await createJoinedPlayer(lobbyService, playerSessionService, 'Brock', 'socket-brock');
+  const tracey = await createJoinedPlayer(lobbyService, playerSessionService, 'Tracey', 'socket-tracey');
 
   assert.equal(state.lobbies.length, 2);
   assert.equal(ash.lobbyId, misty.lobbyId);
@@ -153,16 +161,10 @@ test('joinLobby creates a new waiting lobby once the oldest waiting lobby is alr
 });
 
 test('markPlayerReady starts a battle when both players are ready', async () => {
-  const { state, lobbyService } = createServices();
+  const { state, lobbyService, playerSessionService } = createServices();
 
-  const ash = await lobbyService.joinLobby({
-    nickname: 'Ash',
-    socketId: 'socket-ash',
-  });
-  const misty = await lobbyService.joinLobby({
-    nickname: 'Misty',
-    socketId: 'socket-misty',
-  });
+  const ash = await createJoinedPlayer(lobbyService, playerSessionService, 'Ash', 'socket-ash');
+  const misty = await createJoinedPlayer(lobbyService, playerSessionService, 'Misty', 'socket-misty');
 
   assignTeamsToCurrentLobby(state);
 
@@ -190,16 +192,10 @@ test('markPlayerReady starts a battle when both players are ready', async () => 
 });
 
 test('markPlayerReady is idempotent and returns the active battle snapshot', async () => {
-  const { state, lobbyService } = createServices();
+  const { state, lobbyService, playerSessionService } = createServices();
 
-  const ash = await lobbyService.joinLobby({
-    nickname: 'Ash',
-    socketId: 'socket-ash',
-  });
-  const misty = await lobbyService.joinLobby({
-    nickname: 'Misty',
-    socketId: 'socket-misty',
-  });
+  const ash = await createJoinedPlayer(lobbyService, playerSessionService, 'Ash', 'socket-ash');
+  const misty = await createJoinedPlayer(lobbyService, playerSessionService, 'Misty', 'socket-misty');
 
   assignTeamsToCurrentLobby(state);
 
@@ -224,12 +220,9 @@ test('markPlayerReady is idempotent and returns the active battle snapshot', asy
 });
 
 test('reconnectPlayer updates the socket and returns lobby state while the lobby is still waiting', async () => {
-  const { state, lobbyService } = createServices();
+  const { state, lobbyService, playerSessionService } = createServices();
 
-  const ash = await lobbyService.joinLobby({
-    nickname: 'Ash',
-    socketId: 'socket-ash',
-  });
+  const ash = await createJoinedPlayer(lobbyService, playerSessionService, 'Ash', 'socket-ash');
 
   const result = await lobbyService.reconnectPlayer({
     playerId: ash.playerId,
@@ -245,16 +238,10 @@ test('reconnectPlayer updates the socket and returns lobby state while the lobby
 });
 
 test('reconnectPlayer returns the active battle snapshot when a battle is in progress', async () => {
-  const { state, lobbyService } = createServices();
+  const { state, lobbyService, playerSessionService } = createServices();
 
-  const ash = await lobbyService.joinLobby({
-    nickname: 'Ash',
-    socketId: 'socket-ash',
-  });
-  const misty = await lobbyService.joinLobby({
-    nickname: 'Misty',
-    socketId: 'socket-misty',
-  });
+  const ash = await createJoinedPlayer(lobbyService, playerSessionService, 'Ash', 'socket-ash');
+  const misty = await createJoinedPlayer(lobbyService, playerSessionService, 'Misty', 'socket-misty');
 
   assignTeamsToCurrentLobby(state);
 
@@ -282,16 +269,10 @@ test('reconnectPlayer returns the active battle snapshot when a battle is in pro
 });
 
 test('reconnectPlayer returns the finished battle snapshot when the battle already ended', async () => {
-  const { state, lobbyService } = createServices();
+  const { state, lobbyService, playerSessionService } = createServices();
 
-  const ash = await lobbyService.joinLobby({
-    nickname: 'Ash',
-    socketId: 'socket-ash',
-  });
-  const misty = await lobbyService.joinLobby({
-    nickname: 'Misty',
-    socketId: 'socket-misty',
-  });
+  const ash = await createJoinedPlayer(lobbyService, playerSessionService, 'Ash', 'socket-ash');
+  const misty = await createJoinedPlayer(lobbyService, playerSessionService, 'Misty', 'socket-misty');
 
   assignTeamsToCurrentLobby(state);
 
@@ -321,12 +302,9 @@ test('reconnectPlayer returns the finished battle snapshot when the battle alrea
 });
 
 test('cancelSearch removes a searching player from a waiting lobby and returns the player to idle', async () => {
-  const { state, lobbyService } = createServices();
+  const { state, lobbyService, playerSessionService } = createServices();
 
-  const ash = await lobbyService.joinLobby({
-    nickname: 'Ash',
-    socketId: 'socket-ash',
-  });
+  const ash = await createJoinedPlayer(lobbyService, playerSessionService, 'Ash', 'socket-ash');
 
   const result = await lobbyService.cancelSearch({
     playerId: ash.playerId,
@@ -341,16 +319,10 @@ test('cancelSearch removes a searching player from a waiting lobby and returns t
 });
 
 test('cancelSearch rejects players that are already matched inside a lobby', async () => {
-  const { lobbyService } = createServices();
+  const { lobbyService, playerSessionService } = createServices();
 
-  const ash = await lobbyService.joinLobby({
-    nickname: 'Ash',
-    socketId: 'socket-ash',
-  });
-  await lobbyService.joinLobby({
-    nickname: 'Misty',
-    socketId: 'socket-misty',
-  });
+  const ash = await createJoinedPlayer(lobbyService, playerSessionService, 'Ash', 'socket-ash');
+  await createJoinedPlayer(lobbyService, playerSessionService, 'Misty', 'socket-misty');
 
   await assert.rejects(
     () =>
@@ -364,12 +336,9 @@ test('cancelSearch rejects players that are already matched inside a lobby', asy
 });
 
 test('reconnectPlayer rejects an invalid reconnect token', async () => {
-  const { lobbyService } = createServices();
+  const { lobbyService, playerSessionService } = createServices();
 
-  const ash = await lobbyService.joinLobby({
-    nickname: 'Ash',
-    socketId: 'socket-ash',
-  });
+  const ash = await createJoinedPlayer(lobbyService, playerSessionService, 'Ash', 'socket-ash');
 
   await assert.rejects(
     () =>

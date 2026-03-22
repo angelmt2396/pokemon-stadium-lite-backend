@@ -394,7 +394,8 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
           <h1>Pokemon Stadium Lite Backend Documentation</h1>
           <p>
             Single entry point for the backend contract. REST endpoints are exposed with Swagger,
-            and Socket.IO events are summarized here with their expected payloads and acknowledgements.
+            and Socket.IO events are summarized here with their expected payloads, acknowledgements,
+            and session-based authentication flow.
           </p>
         </div>
         <p class="hero-actions">
@@ -422,6 +423,39 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
               data: {
                 status: 'ok',
                 service: 'pokemon-stadium-lite-backend',
+              },
+            })}</pre>
+          </article>
+
+          <article class="card">
+            <div class="endpoint"><span class="method">POST</span><span>/api/v1/player-sessions</span></div>
+            <p>Creates a lightweight session by nickname and returns the <code>sessionToken</code> used by REST and Socket.IO.</p>
+            <pre>${renderJson({
+              success: true,
+              data: {
+                playerId: 'player-1',
+                nickname: 'Ash',
+                sessionStatus: 'active',
+                playerStatus: 'idle',
+                sessionToken: 'opaque-session-token',
+                currentLobbyId: null,
+                currentBattleId: null,
+              },
+            })}</pre>
+          </article>
+
+          <article class="card">
+            <div class="endpoint"><span class="method">GET</span><span>/api/v1/player-sessions/me</span></div>
+            <p>Loads the authenticated session with <code>Authorization: Bearer &lt;sessionToken&gt;</code>.</p>
+            <pre>${renderJson({
+              success: true,
+              data: {
+                playerId: 'player-1',
+                nickname: 'Ash',
+                sessionStatus: 'active',
+                playerStatus: 'idle',
+                currentLobbyId: null,
+                currentBattleId: null,
               },
             })}</pre>
           </article>
@@ -506,27 +540,27 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
             <div class="event-list">
               <div class="event-item">
                 <div class="event-name">search_match</div>
-                <div class="event-note">Payload: <code>{ nickname }</code>. Creates or joins the oldest available waiting lobby.</div>
+                <div class="event-note">Payload: <code>{}</code>. Uses the authenticated socket session to create or join the oldest available waiting lobby.</div>
               </div>
               <div class="event-item">
                 <div class="event-name">cancel_search</div>
-                <div class="event-note">Payload: <code>{ playerId }</code>. Cancels matchmaking only if the player is still waiting alone.</div>
+                <div class="event-note">Payload: <code>{}</code>. Cancels matchmaking only if the authenticated player is still waiting alone.</div>
               </div>
               <div class="event-item">
                 <div class="event-name">assign_pokemon</div>
-                <div class="event-note">Payload: <code>{ lobbyId, playerId }</code>. Assigns random teams once the lobby has two players.</div>
+                <div class="event-note">Payload: <code>{ lobbyId }</code>. Assigns random teams once the lobby has two players.</div>
               </div>
               <div class="event-item">
                 <div class="event-name">ready</div>
-                <div class="event-note">Payload: <code>{ lobbyId, playerId }</code>. Marks player as ready and starts battle automatically when both are ready.</div>
+                <div class="event-note">Payload: <code>{ lobbyId }</code>. Marks player as ready and starts battle automatically when both are ready.</div>
               </div>
               <div class="event-item">
                 <div class="event-name">attack</div>
-                <div class="event-note">Payload: <code>{ battleId, playerId }</code>. Processes one turn only if it is that player&apos;s turn.</div>
+                <div class="event-note">Payload: <code>{ battleId }</code>. Processes one turn only if it is that player&apos;s turn.</div>
               </div>
               <div class="event-item">
                 <div class="event-name">reconnect_player</div>
-                <div class="event-note">Payload: <code>{ playerId, reconnectToken }</code>. Rebinds the player to a new socket and restores lobby and battle state.</div>
+                <div class="event-note">Payload: <code>{ reconnectToken }</code>. Rebinds the authenticated player to a new socket and restores lobby and battle state.</div>
               </div>
             </div>
           </article>
@@ -949,14 +983,15 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
         </div>
 
         <div class="card" style="margin-top: 20px;">
-          <p class="footnote">
-            Full Socket.IO contract with payload examples and business errors is also available in
-            <a href="/documentation#socket-io">this page</a> and in the repository file
-            <code>docs/socket-contracts.md</code>.
-          </p>
-          <p class="footnote">
+            <p class="footnote">
+              Full Socket.IO contract with payload examples and business errors is also available in
+              <a href="/documentation#socket-io">this page</a> and in the repository file
+              <code>docs/socket-contracts.md</code>.
+            </p>
+            <p class="footnote">
             Input validation is performed before business logic in both REST and Socket.IO handlers.
-          </p>
+            Socket.IO additionally requires an authenticated handshake with <code>auth.sessionToken</code>.
+            </p>
         </div>
       </section>
 
@@ -964,9 +999,17 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
         <h2>Try It</h2>
         <div class="tester-grid">
           <article class="card">
+            <h3>REST Request Tester</h3>
+            <p class="mini-note">
+              Use <a href="/docs">Swagger UI</a> for interactive REST requests, including the new
+              <code>/api/v1/player-sessions</code> endpoints and bearer-authenticated session flows.
+            </p>
+          </article>
+
+          <article class="card">
             <h3>Socket.IO Event Tester</h3>
             <p class="mini-note">
-              Browser-side client that loads <code>/socket.io/socket.io.js</code>, connects to the current origin, emits one event at a time, and records server events and acknowledgements.
+              Browser-side client that loads <code>/socket.io/socket.io.js</code>, connects to the current origin with <code>auth.sessionToken</code>, emits one event at a time, and records server events and acknowledgements.
             </p>
             <div class="tester-controls" style="margin-top: 16px;">
               <div class="button-row">
@@ -980,6 +1023,10 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
               </p>
 
               <div class="field-grid">
+                <div class="field">
+                  <label for="socket-session-token">sessionToken</label>
+                  <input id="socket-session-token" type="text" value="" />
+                </div>
                 <div class="field">
                   <label for="socket-nickname">nickname</label>
                   <input id="socket-nickname" type="text" value="Ash" />
@@ -1119,6 +1166,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
         const socketEventsLog = document.getElementById('socket-events-log');
         const socketTemplate = document.getElementById('socket-template');
         const socketEmit = document.getElementById('socket-emit');
+        const socketSessionToken = document.getElementById('socket-session-token');
         const socketNickname = document.getElementById('socket-nickname');
         const socketPlayerId = document.getElementById('socket-player-id');
         const socketReconnectToken = document.getElementById('socket-reconnect-token');
@@ -1133,6 +1181,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
           'battle_end',
         ];
         const runtimeState = {
+          sessionToken: '',
           playerId: '',
           reconnectToken: '',
           lobbyId: '',
@@ -1150,6 +1199,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
         };
 
         const syncInputsFromState = () => {
+          socketSessionToken.value = runtimeState.sessionToken;
           socketPlayerId.value = runtimeState.playerId;
           socketReconnectToken.value = runtimeState.reconnectToken;
           socketLobbyId.value = runtimeState.lobbyId;
@@ -1189,43 +1239,35 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
         };
 
         const socketTemplates = {
-          search_match: () => ({
-            nickname: socketNickname.value.trim() || 'Ash',
-          }),
-          cancel_search: () => ({
-            playerId: socketPlayerId.value.trim(),
-          }),
+          search_match: () => ({}),
+          cancel_search: () => ({}),
           reconnect_player: () => ({
-            playerId: socketPlayerId.value.trim(),
             reconnectToken: socketReconnectToken.value.trim(),
           }),
           assign_pokemon: () => ({
-            playerId: socketPlayerId.value.trim(),
             lobbyId: socketLobbyId.value.trim(),
           }),
           ready: () => ({
-            playerId: socketPlayerId.value.trim(),
             lobbyId: socketLobbyId.value.trim(),
           }),
           attack: () => ({
-            playerId: socketPlayerId.value.trim(),
             battleId: socketBattleId.value.trim(),
           }),
         };
 
         const socketEventNotes = {
           search_match:
-            'Recommended matchmaking event. Payload: { nickname }. Successful ack returns playerId, lobbyId and reconnectToken.',
+            'Recommended matchmaking event. Payload: {}. The backend resolves the player from the authenticated socket session and returns playerId, lobbyId and reconnectToken.',
           cancel_search:
-            'Cancels matchmaking only while the player is alone in a waiting lobby. Payload: { playerId }.',
+            'Cancels matchmaking only while the authenticated player is alone in a waiting lobby. Payload: {}.',
           reconnect_player:
-            'Rebinds the player to a new socket. Requires { playerId, reconnectToken }. Successful ack may include lobbyStatus and battleState.',
+            'Rebinds the authenticated player to a new socket. Requires { reconnectToken }. Successful ack may include lobbyStatus and battleState.',
           assign_pokemon:
-            'Assigns a random team once the lobby has two players. Payload: { playerId, lobbyId }.',
+            'Assigns a random team once the lobby has two players. Payload: { lobbyId }.',
           ready:
             'Marks one player ready. When both are ready, the ack can include battleStart and the server emits battle_start.',
           attack:
-            'Processes one battle turn. Payload: { playerId, battleId }. Only works for the currentTurnPlayerId.',
+            'Processes one battle turn. Payload: { battleId }. Only works for the currentTurnPlayerId.',
         };
 
         const refreshPayloadTemplate = () => {
@@ -1253,6 +1295,9 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
           socket = window.io(window.location.origin, {
             autoConnect: false,
             reconnection: true,
+            auth: {
+              sessionToken: socketSessionToken.value.trim(),
+            },
           });
 
           socket.on('connect', () => {
@@ -1358,12 +1403,19 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
           refreshPayloadTemplate();
         });
 
-        [socketNickname, socketPlayerId, socketReconnectToken, socketLobbyId, socketBattleId].forEach((input) => {
+        [socketSessionToken, socketNickname, socketPlayerId, socketReconnectToken, socketLobbyId, socketBattleId].forEach((input) => {
           input.addEventListener('change', () => {
+            runtimeState.sessionToken = socketSessionToken.value.trim();
             runtimeState.playerId = socketPlayerId.value.trim();
             runtimeState.reconnectToken = socketReconnectToken.value.trim();
             runtimeState.lobbyId = socketLobbyId.value.trim();
             runtimeState.battleId = socketBattleId.value.trim();
+
+            if (socket && !socket.connected) {
+              socket.close();
+              socket = null;
+            }
+
             refreshPayloadTemplate();
           });
         });

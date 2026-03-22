@@ -4,7 +4,8 @@ import { AppError } from '../../../shared/errors/AppError.js';
 import { PLAYER_STATUS } from '../../../shared/constants/player-status.js';
 import { createPlayer } from '../repositories/player.repository.js';
 
-const createReconnectToken = () => crypto.randomBytes(24).toString('hex');
+export const createReconnectToken = () => crypto.randomBytes(24).toString('hex');
+const normalizeNickname = (nickname) => nickname.trim().toLowerCase();
 
 export const registerPlayer = async ({ nickname, socketId }) => {
   if (!nickname || !nickname.trim()) {
@@ -13,9 +14,11 @@ export const registerPlayer = async ({ nickname, socketId }) => {
 
   return createPlayer({
     nickname: nickname.trim(),
+    nicknameNormalized: normalizeNickname(nickname),
     socketId,
     reconnectToken: createReconnectToken(),
     status: PLAYER_STATUS.IDLE,
     activeLobbyId: null,
+    activeBattleId: null,
   });
 };

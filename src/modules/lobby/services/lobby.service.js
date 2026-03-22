@@ -4,7 +4,6 @@ import { AppError } from '../../../shared/errors/AppError.js';
 import { LOBBY_STATUS } from '../../../shared/constants/lobby-status.js';
 import { runSerialized } from '../../../shared/utils/serial-executor.js';
 import { findPlayerById, updatePlayerSocket, updatePlayerState, updatePlayersState } from '../../players/repositories/player.repository.js';
-import { registerPlayer } from '../../players/services/player.service.js';
 import {
   createLobby,
   findLobbyById,
@@ -41,7 +40,6 @@ export const createLobbyService = (dependencies = {}) => {
     updatePlayerSocketDependency = updatePlayerSocket,
     updatePlayerStateDependency = updatePlayerState,
     updatePlayersStateDependency = updatePlayersState,
-    registerPlayerDependency = registerPlayer,
     createLobbyDependency = createLobby,
     findLobbyByIdDependency = findLobbyById,
     findLobbyByPlayerIdDependency = findLobbyByPlayerId,
@@ -65,10 +63,28 @@ export const createLobbyService = (dependencies = {}) => {
     });
   };
 
-  const joinLobby = async ({ nickname, socketId }) =>
+  const joinLobby = async ({ playerId, socketId }) =>
     runSerializedDependency(MATCHMAKING_LOCK_KEY, async () => {
+      if (!playerId || !socketId) {
+        throw new AppError('playerId and socketId are required', 400);
+      }
+
+      const player = await findPlayerByIdDependency(playerId);
+
+      if (!player) {
+        throw new AppError('Player not found', 404);
+      }
+
+      if (
+        player.status !== PLAYER_STATUS.IDLE ||
+        player.activeLobbyId !== null ||
+        player.activeBattleId !== null
+      ) {
+        throw new AppError('Player already has an active lobby or battle', 409);
+      }
+
       const lobby = await resolveLobbyForJoin();
-      const normalizedNickname = normalizeNickname(nickname);
+      const normalizedNickname = normalizeNickname(player.nickname);
 
       const duplicatedNickname = lobby.players.find(
         (player) => normalizeNickname(player.nickname) === normalizedNickname,
@@ -77,8 +93,6 @@ export const createLobbyService = (dependencies = {}) => {
       if (duplicatedNickname) {
         throw new AppError('Nickname is already taken in the current lobby', 409);
       }
-
-      const player = await registerPlayerDependency({ nickname, socketId });
 
       lobby.players.push({
         playerId: player.id,
@@ -93,8 +107,11 @@ export const createLobbyService = (dependencies = {}) => {
       const lobbyPlayerStatus = lobby.players.length === 2 ? PLAYER_STATUS.IN_LOBBY : PLAYER_STATUS.SEARCHING;
 
       await updatePlayerStateDependency(player.id, {
+        socketId,
         status: lobbyPlayerStatus,
         activeLobbyId: lobby.id,
+        activeBattleId: null,
+        lastSeenAt: new Date(),
       });
 
       if (lobby.players.length === 2) {
@@ -249,6 +266,7 @@ export const createLobbyService = (dependencies = {}) => {
         await updatePlayerStateDependency(player.id, {
           status: PLAYER_STATUS.IDLE,
           activeLobbyId: null,
+          activeBattleId: null,
         });
 
         return {
@@ -270,6 +288,7 @@ export const createLobbyService = (dependencies = {}) => {
       await updatePlayerStateDependency(player.id, {
         status: PLAYER_STATUS.IDLE,
         activeLobbyId: null,
+        activeBattleId: null,
       });
 
       return {
