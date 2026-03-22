@@ -15,12 +15,12 @@ import {
 } from '../helpers/in-memory-state.js';
 
 const pokemonCatalogById = {
-  1: { id: 1, name: 'Bulbasaur', hp: 45, attack: 49, defense: 49, speed: 45 },
-  4: { id: 4, name: 'Charmander', hp: 39, attack: 52, defense: 43, speed: 65 },
-  7: { id: 7, name: 'Squirtle', hp: 44, attack: 48, defense: 65, speed: 43 },
-  25: { id: 25, name: 'Pikachu', hp: 35, attack: 55, defense: 40, speed: 90 },
-  39: { id: 39, name: 'Jigglypuff', hp: 115, attack: 45, defense: 20, speed: 20 },
-  143: { id: 143, name: 'Snorlax', hp: 160, attack: 110, defense: 65, speed: 30 },
+  1: { id: 1, name: 'Bulbasaur', sprite: 'https://example.test/bulbasaur.gif', hp: 45, attack: 49, defense: 49, speed: 45 },
+  4: { id: 4, name: 'Charmander', sprite: 'https://example.test/charmander.gif', hp: 39, attack: 52, defense: 43, speed: 65 },
+  7: { id: 7, name: 'Squirtle', sprite: 'https://example.test/squirtle.gif', hp: 44, attack: 48, defense: 65, speed: 43 },
+  25: { id: 25, name: 'Pikachu', sprite: 'https://example.test/pikachu.gif', hp: 35, attack: 55, defense: 40, speed: 90 },
+  39: { id: 39, name: 'Jigglypuff', sprite: 'https://example.test/jigglypuff.gif', hp: 115, attack: 45, defense: 20, speed: 20 },
+  143: { id: 143, name: 'Snorlax', sprite: 'https://example.test/snorlax.gif', hp: 160, attack: 110, defense: 65, speed: 30 },
 };
 
 const createServices = () => {
@@ -90,14 +90,14 @@ const assignTeamsToCurrentLobby = (state) => {
   const lobby = state.lobbies[0];
 
   lobby.players[0].team = [
-    { pokemonId: 25, name: 'Pikachu' },
-    { pokemonId: 4, name: 'Charmander' },
-    { pokemonId: 7, name: 'Squirtle' },
+    { pokemonId: 25, name: 'Pikachu', sprite: 'https://example.test/pikachu.gif' },
+    { pokemonId: 4, name: 'Charmander', sprite: 'https://example.test/charmander.gif' },
+    { pokemonId: 7, name: 'Squirtle', sprite: 'https://example.test/squirtle.gif' },
   ];
   lobby.players[1].team = [
-    { pokemonId: 143, name: 'Snorlax' },
-    { pokemonId: 39, name: 'Jigglypuff' },
-    { pokemonId: 1, name: 'Bulbasaur' },
+    { pokemonId: 143, name: 'Snorlax', sprite: 'https://example.test/snorlax.gif' },
+    { pokemonId: 39, name: 'Jigglypuff', sprite: 'https://example.test/jigglypuff.gif' },
+    { pokemonId: 1, name: 'Bulbasaur', sprite: 'https://example.test/bulbasaur.gif' },
   ];
 
   return lobby;
@@ -113,6 +113,7 @@ test('joinLobby creates a waiting lobby and registers the first player', async (
   assert.equal(state.lobbies.length, 1);
   assert.equal(result.lobbyStatus.players.length, 1);
   assert.equal(result.lobbyStatus.players[0].nickname, 'Ash');
+  assert.deepEqual(result.lobbyStatus.players[0].team, []);
   assert.equal(typeof result.reconnectToken, 'string');
   assert.equal(result.reconnectToken.length > 0, true);
   assert.equal(state.players[0].status, 'searching');
@@ -183,7 +184,9 @@ test('markPlayerReady starts a battle when both players are ready', async () => 
 
   assert.equal(secondReady.ready, true);
   assert.equal(secondReady.lobbyStatus.status, LOBBY_STATUS.READY);
+  assert.equal(secondReady.lobbyStatus.players[0].team[0].sprite, 'https://example.test/pikachu.gif');
   assert.equal(secondReady.battleStart.status, BATTLE_STATUS.BATTLING);
+  assert.equal(secondReady.battleStart.players[0].team[0].sprite, 'https://example.test/pikachu.gif');
   assert.equal(secondReady.battleStart.currentTurnPlayerId, ash.playerId);
   assert.equal(state.battles.length, 1);
   assert.equal(state.lobbies[0].status, LOBBY_STATUS.BATTLING);

@@ -13,10 +13,10 @@ import {
 } from '../helpers/in-memory-state.js';
 
 const pokemonCatalogById = {
-  25: { id: 25, name: 'Pikachu', hp: 35, attack: 55, defense: 40, speed: 90 },
-  143: { id: 143, name: 'Snorlax', hp: 160, attack: 110, defense: 65, speed: 30 },
-  4: { id: 4, name: 'Charmander', hp: 39, attack: 52, defense: 43, speed: 65 },
-  7: { id: 7, name: 'Squirtle', hp: 44, attack: 48, defense: 65, speed: 43 },
+  25: { id: 25, name: 'Pikachu', sprite: 'https://example.test/pikachu.gif', hp: 35, attack: 55, defense: 40, speed: 90 },
+  143: { id: 143, name: 'Snorlax', sprite: 'https://example.test/snorlax.gif', hp: 160, attack: 110, defense: 65, speed: 30 },
+  4: { id: 4, name: 'Charmander', sprite: 'https://example.test/charmander.gif', hp: 39, attack: 52, defense: 43, speed: 65 },
+  7: { id: 7, name: 'Squirtle', sprite: 'https://example.test/squirtle.gif', hp: 44, attack: 48, defense: 65, speed: 43 },
 };
 
 const createService = () => {
@@ -53,9 +53,9 @@ const createService = () => {
         nickname: 'Ash',
         ready: true,
         team: [
-          { pokemonId: 25, name: 'Pikachu' },
-          { pokemonId: 4, name: 'Charmander' },
-          { pokemonId: 7, name: 'Squirtle' },
+          { pokemonId: 25, name: 'Pikachu', sprite: 'https://example.test/pikachu.gif' },
+          { pokemonId: 4, name: 'Charmander', sprite: 'https://example.test/charmander.gif' },
+          { pokemonId: 7, name: 'Squirtle', sprite: 'https://example.test/squirtle.gif' },
         ],
       },
       {
@@ -63,9 +63,9 @@ const createService = () => {
         nickname: 'Misty',
         ready: true,
         team: [
-          { pokemonId: 143, name: 'Snorlax' },
-          { pokemonId: 4, name: 'Charmander' },
-          { pokemonId: 7, name: 'Squirtle' },
+          { pokemonId: 143, name: 'Snorlax', sprite: 'https://example.test/snorlax.gif' },
+          { pokemonId: 4, name: 'Charmander', sprite: 'https://example.test/charmander.gif' },
+          { pokemonId: 7, name: 'Squirtle', sprite: 'https://example.test/squirtle.gif' },
         ],
       },
     ],
@@ -100,6 +100,8 @@ test('startBattle creates a battling snapshot and selects the first turn by spee
 
   assert.equal(battleState.status, BATTLE_STATUS.BATTLING);
   assert.equal(battleState.currentTurnPlayerId, 'player-ash');
+  assert.equal(battleState.players[0].team[0].sprite, 'https://example.test/pikachu.gif');
+  assert.equal(battleState.players[1].activePokemon?.sprite, 'https://example.test/snorlax.gif');
   assert.equal(state.battles.length, 1);
   assert.equal(state.lobbies[0].status, LOBBY_STATUS.BATTLING);
   assert.equal(state.players[0].status, 'battling');
@@ -139,6 +141,7 @@ test('processAttack finishes the battle when the defender has no remaining pokem
     {
       pokemonId: 143,
       name: 'Snorlax',
+      sprite: 'https://example.test/snorlax.gif',
       hp: 1,
       currentHp: 1,
       attack: 110,

@@ -72,10 +72,12 @@ export const createTeamAssignmentService = (dependencies = {}) => {
         lobby.players[0].team = selectedPokemon.slice(0, 3).map((pokemon) => ({
           pokemonId: pokemon.id,
           name: pokemon.name,
+          sprite: pokemon.sprite,
         }));
         lobby.players[1].team = selectedPokemon.slice(3, 6).map((pokemon) => ({
           pokemonId: pokemon.id,
           name: pokemon.name,
+          sprite: pokemon.sprite,
         }));
 
         await saveLobbyDependency(lobby);
@@ -89,6 +91,7 @@ export const createTeamAssignmentService = (dependencies = {}) => {
         team: updatedPlayer.team.map((pokemon) => ({
           pokemonId: pokemon.pokemonId,
           name: pokemon.name,
+          sprite: pokemon.sprite,
         })),
         lobbyStatus: normalizeLobbyStatusPayloadDependency(lobby),
       };

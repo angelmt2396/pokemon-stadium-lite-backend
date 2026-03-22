@@ -16,6 +16,7 @@ const battleLockKey = (battleId) => `battle:${battleId}`;
 const createBattlePokemon = (pokemon) => ({
   pokemonId: pokemon.id,
   name: pokemon.name,
+  sprite: pokemon.sprite,
   hp: pokemon.hp,
   currentHp: pokemon.hp,
   attack: pokemon.attack,
@@ -26,6 +27,18 @@ const createBattlePokemon = (pokemon) => ({
 
 const getActivePokemon = (player) => player.team[player.activePokemonIndex] ?? null;
 
+const normalizeBattlePokemonPayload = (pokemon) => ({
+  pokemonId: pokemon.pokemonId,
+  name: pokemon.name,
+  sprite: pokemon.sprite,
+  hp: pokemon.hp,
+  currentHp: pokemon.currentHp,
+  attack: pokemon.attack,
+  defense: pokemon.defense,
+  speed: pokemon.speed,
+  defeated: pokemon.defeated,
+});
+
 export const normalizeBattleStatePayload = (battle) => ({
   battleId: battle.id,
   lobbyId: String(battle.lobbyId),
@@ -34,7 +47,8 @@ export const normalizeBattleStatePayload = (battle) => ({
   players: battle.players.map((player) => ({
     playerId: String(player.playerId),
     activePokemonIndex: player.activePokemonIndex,
-    activePokemon: getActivePokemon(player),
+    activePokemon: getActivePokemon(player) ? normalizeBattlePokemonPayload(getActivePokemon(player)) : null,
+    team: player.team.map(normalizeBattlePokemonPayload),
   })),
 });
 

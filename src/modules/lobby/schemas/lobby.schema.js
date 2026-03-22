@@ -12,6 +12,11 @@ const assignedPokemonSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    sprite: {
+      type: String,
+      required: true,
+      trim: true,
+    },
   },
   {
     _id: false,

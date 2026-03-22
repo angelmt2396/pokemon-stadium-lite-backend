@@ -647,14 +647,17 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                     {
                       pokemonId: 25,
                       name: 'Pikachu',
+                      sprite: 'https://example.test/pikachu.gif',
                     },
                     {
                       pokemonId: 6,
                       name: 'Charizard',
+                      sprite: 'https://example.test/charizard.gif',
                     },
                     {
                       pokemonId: 143,
                       name: 'Snorlax',
+                      sprite: 'https://example.test/snorlax.gif',
                     },
                   ],
                 },
@@ -666,14 +669,17 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                     {
                       pokemonId: 7,
                       name: 'Squirtle',
+                      sprite: 'https://example.test/squirtle.gif',
                     },
                     {
                       pokemonId: 9,
                       name: 'Blastoise',
+                      sprite: 'https://example.test/blastoise.gif',
                     },
                     {
                       pokemonId: 95,
                       name: 'Onix',
+                      sprite: 'https://example.test/onix.gif',
                     },
                   ],
                 },
@@ -705,6 +711,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                         {
                           pokemonId: 25,
                           name: 'Pikachu',
+                          sprite: 'https://example.test/pikachu.gif',
                         },
                       ],
                     },
@@ -716,6 +723,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                         {
                           pokemonId: 95,
                           name: 'Onix',
+                          sprite: 'https://example.test/onix.gif',
                         },
                       ],
                     },
@@ -733,6 +741,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                       activePokemon: {
                         pokemonId: 25,
                         name: 'Pikachu',
+                        sprite: 'https://example.test/pikachu.gif',
                         hp: 35,
                         currentHp: 18,
                         attack: 55,
@@ -740,6 +749,19 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                         speed: 90,
                         defeated: false,
                       },
+                      team: [
+                        {
+                          pokemonId: 25,
+                          name: 'Pikachu',
+                          sprite: 'https://example.test/pikachu.gif',
+                          hp: 35,
+                          currentHp: 18,
+                          attack: 55,
+                          defense: 40,
+                          speed: 90,
+                          defeated: false,
+                        },
+                      ],
                     },
                     {
                       playerId: 'player-2',
@@ -747,6 +769,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                       activePokemon: {
                         pokemonId: 95,
                         name: 'Onix',
+                        sprite: 'https://example.test/onix.gif',
                         hp: 35,
                         currentHp: 35,
                         attack: 45,
@@ -754,6 +777,19 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                         speed: 70,
                         defeated: false,
                       },
+                      team: [
+                        {
+                          pokemonId: 95,
+                          name: 'Onix',
+                          sprite: 'https://example.test/onix.gif',
+                          hp: 35,
+                          currentHp: 35,
+                          attack: 45,
+                          defense: 160,
+                          speed: 70,
+                          defeated: false,
+                        },
+                      ],
                     },
                   ],
                 },
@@ -817,14 +853,17 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                   {
                     pokemonId: 25,
                     name: 'Pikachu',
+                    sprite: 'https://example.test/pikachu.gif',
                   },
                   {
                     pokemonId: 6,
                     name: 'Charizard',
+                    sprite: 'https://example.test/charizard.gif',
                   },
                   {
                     pokemonId: 143,
                     name: 'Snorlax',
+                    sprite: 'https://example.test/snorlax.gif',
                   },
                 ],
               },
@@ -851,6 +890,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                       activePokemon: {
                         pokemonId: 25,
                         name: 'Pikachu',
+                        sprite: 'https://example.test/pikachu.gif',
                         hp: 35,
                         currentHp: 35,
                         attack: 55,
@@ -858,6 +898,19 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                         speed: 90,
                         defeated: false,
                       },
+                      team: [
+                        {
+                          pokemonId: 25,
+                          name: 'Pikachu',
+                          sprite: 'https://example.test/pikachu.gif',
+                          hp: 35,
+                          currentHp: 35,
+                          attack: 55,
+                          defense: 40,
+                          speed: 90,
+                          defeated: false,
+                        },
+                      ],
                     },
                     {
                       playerId: 'player-2',
@@ -865,6 +918,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                       activePokemon: {
                         pokemonId: 95,
                         name: 'Onix',
+                        sprite: 'https://example.test/onix.gif',
                         hp: 35,
                         currentHp: 35,
                         attack: 45,
@@ -872,6 +926,19 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                         speed: 70,
                         defeated: false,
                       },
+                      team: [
+                        {
+                          pokemonId: 95,
+                          name: 'Onix',
+                          sprite: 'https://example.test/onix.gif',
+                          hp: 35,
+                          currentHp: 35,
+                          attack: 45,
+                          defense: 160,
+                          speed: 70,
+                          defeated: false,
+                        },
+                      ],
                     },
                   ],
                 },
@@ -898,6 +965,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                   activePokemon: {
                     pokemonId: 25,
                     name: 'Pikachu',
+                    sprite: 'https://example.test/pikachu.gif',
                     hp: 35,
                     currentHp: 35,
                     attack: 55,
@@ -905,6 +973,19 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                     speed: 90,
                     defeated: false,
                   },
+                  team: [
+                    {
+                      pokemonId: 25,
+                      name: 'Pikachu',
+                      sprite: 'https://example.test/pikachu.gif',
+                      hp: 35,
+                      currentHp: 35,
+                      attack: 55,
+                      defense: 40,
+                      speed: 90,
+                      defeated: false,
+                    },
+                  ],
                 },
                 {
                   playerId: 'player-2',
@@ -912,6 +993,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                   activePokemon: {
                     pokemonId: 95,
                     name: 'Onix',
+                    sprite: 'https://example.test/onix.gif',
                     hp: 35,
                     currentHp: 35,
                     attack: 45,
@@ -919,6 +1001,19 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                     speed: 70,
                     defeated: false,
                   },
+                  team: [
+                    {
+                      pokemonId: 95,
+                      name: 'Onix',
+                      sprite: 'https://example.test/onix.gif',
+                      hp: 35,
+                      currentHp: 35,
+                      attack: 45,
+                      defense: 160,
+                      speed: 70,
+                      defeated: false,
+                    },
+                  ],
                 },
               ],
             })}</pre>
@@ -958,6 +1053,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                 pokemon: {
                   pokemonId: 9,
                   name: 'Blastoise',
+                  sprite: 'https://example.test/blastoise.gif',
                   hp: 79,
                   currentHp: 79,
                   attack: 83,

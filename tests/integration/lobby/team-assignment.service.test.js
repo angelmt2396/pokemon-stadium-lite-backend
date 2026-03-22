@@ -10,14 +10,14 @@ import {
 } from '../helpers/in-memory-state.js';
 
 const pokemonCatalog = [
-  { id: 1, name: 'Bulbasaur' },
-  { id: 2, name: 'Ivysaur' },
-  { id: 3, name: 'Venusaur' },
-  { id: 4, name: 'Charmander' },
-  { id: 5, name: 'Charmeleon' },
-  { id: 6, name: 'Charizard' },
-  { id: 7, name: 'Squirtle' },
-  { id: 8, name: 'Wartortle' },
+  { id: 1, name: 'Bulbasaur', sprite: 'https://example.test/bulbasaur.gif' },
+  { id: 2, name: 'Ivysaur', sprite: 'https://example.test/ivysaur.gif' },
+  { id: 3, name: 'Venusaur', sprite: 'https://example.test/venusaur.gif' },
+  { id: 4, name: 'Charmander', sprite: 'https://example.test/charmander.gif' },
+  { id: 5, name: 'Charmeleon', sprite: 'https://example.test/charmeleon.gif' },
+  { id: 6, name: 'Charizard', sprite: 'https://example.test/charizard.gif' },
+  { id: 7, name: 'Squirtle', sprite: 'https://example.test/squirtle.gif' },
+  { id: 8, name: 'Wartortle', sprite: 'https://example.test/wartortle.gif' },
 ];
 
 const createService = () => {
@@ -61,6 +61,7 @@ test('assignRandomTeam assigns three pokemon to each player without duplicates b
   const uniqueIds = new Set(allAssignedIds);
 
   assert.equal(response.team.length, 3);
+  assert.equal(typeof response.team[0].sprite, 'string');
   assert.equal(state.lobbies[0].players[1].team.length, 3);
   assert.equal(allAssignedIds.length, 6);
   assert.equal(uniqueIds.size, 6);

@@ -197,6 +197,7 @@ Notas:
 - los errores de validación en Socket.IO responden vía ack con `{ "ok": false, "message": "..." }`
 - `reconnect_player` requiere `reconnectToken`; `playerId` es opcional por compatibilidad y debe coincidir con la sesion
 - `search_match` usa la identidad autenticada de la sesion y devuelve `reconnectToken` en el ack exitoso
+- `lobby_status`, `assign_pokemon`, `battle_start` y `reconnect_player` incluyen `sprite` en cada Pokemon; los snapshots de batalla tambien incluyen `team[]` completa por jugador
 
 ## Estructura
 

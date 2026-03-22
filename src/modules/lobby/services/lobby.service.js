@@ -19,6 +19,12 @@ const normalizeNickname = (nickname) => nickname.trim().toLowerCase();
 const lobbyLockKey = (lobbyId) => `lobby:${lobbyId}`;
 const playerLockKey = (playerId) => `player:${playerId}`;
 
+const normalizeAssignedPokemonPayload = (pokemon) => ({
+  pokemonId: pokemon.pokemonId,
+  name: pokemon.name,
+  sprite: pokemon.sprite,
+});
+
 export const normalizeLobbyStatusPayload = (lobby) => ({
   lobbyId: lobby.id,
   status: lobby.status,
@@ -26,10 +32,7 @@ export const normalizeLobbyStatusPayload = (lobby) => ({
     playerId: String(player.playerId),
     nickname: player.nickname,
     ready: player.ready,
-    team: player.team.map((pokemon) => ({
-      pokemonId: pokemon.pokemonId,
-      name: pokemon.name,
-    })),
+    team: player.team.map(normalizeAssignedPokemonPayload),
   })),
 });
 

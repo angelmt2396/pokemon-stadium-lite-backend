@@ -151,7 +151,8 @@ Ack exitoso:
     "team": [
       {
         "pokemonId": 25,
-        "name": "Pikachu"
+        "name": "Pikachu",
+        "sprite": "https://example.test/pikachu.gif"
       }
     ],
     "lobbyStatus": {
@@ -209,14 +210,56 @@ Ack exitoso con batalla iniciada:
     "lobbyStatus": {
       "lobbyId": "lobby-id",
       "status": "ready",
-      "players": []
+      "players": [
+        {
+          "playerId": "player-id",
+          "nickname": "Ash",
+          "ready": true,
+          "team": [
+            {
+              "pokemonId": 25,
+              "name": "Pikachu",
+              "sprite": "https://example.test/pikachu.gif"
+            }
+          ]
+        }
+      ]
     },
     "battleStart": {
       "battleId": "battle-id",
       "lobbyId": "lobby-id",
       "status": "battling",
       "currentTurnPlayerId": "player-id",
-      "players": []
+      "players": [
+        {
+          "playerId": "player-id",
+          "activePokemonIndex": 0,
+          "activePokemon": {
+            "pokemonId": 25,
+            "name": "Pikachu",
+            "sprite": "https://example.test/pikachu.gif",
+            "hp": 35,
+            "currentHp": 35,
+            "attack": 55,
+            "defense": 40,
+            "speed": 90,
+            "defeated": false
+          },
+          "team": [
+            {
+              "pokemonId": 25,
+              "name": "Pikachu",
+              "sprite": "https://example.test/pikachu.gif",
+              "hp": 35,
+              "currentHp": 35,
+              "attack": 55,
+              "defense": 40,
+              "speed": 90,
+              "defeated": false
+            }
+          ]
+        }
+      ]
     }
   }
 }
@@ -271,14 +314,56 @@ Ack exitoso:
     "lobbyStatus": {
       "lobbyId": "lobby-id",
       "status": "battling",
-      "players": []
+      "players": [
+        {
+          "playerId": "player-id",
+          "nickname": "Ash",
+          "ready": true,
+          "team": [
+            {
+              "pokemonId": 25,
+              "name": "Pikachu",
+              "sprite": "https://example.test/pikachu.gif"
+            }
+          ]
+        }
+      ]
     },
     "battleState": {
       "battleId": "battle-id",
       "lobbyId": "lobby-id",
       "status": "battling",
       "currentTurnPlayerId": "player-id",
-      "players": []
+      "players": [
+        {
+          "playerId": "player-id",
+          "activePokemonIndex": 0,
+          "activePokemon": {
+            "pokemonId": 25,
+            "name": "Pikachu",
+            "sprite": "https://example.test/pikachu.gif",
+            "hp": 35,
+            "currentHp": 18,
+            "attack": 55,
+            "defense": 40,
+            "speed": 90,
+            "defeated": false
+          },
+          "team": [
+            {
+              "pokemonId": 25,
+              "name": "Pikachu",
+              "sprite": "https://example.test/pikachu.gif",
+              "hp": 35,
+              "currentHp": 18,
+              "attack": 55,
+              "defense": 40,
+              "speed": 90,
+              "defeated": false
+            }
+          ]
+        }
+      ]
     }
   }
 }
@@ -336,7 +421,8 @@ Payloads esperados:
       "team": [
         {
           "pokemonId": 25,
-          "name": "Pikachu"
+          "name": "Pikachu",
+          "sprite": "https://example.test/pikachu.gif"
         }
       ]
     }
@@ -366,13 +452,27 @@ Estados posibles de lobby:
       "activePokemon": {
         "pokemonId": 25,
         "name": "Pikachu",
+        "sprite": "https://example.test/pikachu.gif",
         "hp": 35,
         "currentHp": 35,
         "attack": 55,
         "defense": 40,
         "speed": 90,
         "defeated": false
-      }
+      },
+      "team": [
+        {
+          "pokemonId": 25,
+          "name": "Pikachu",
+          "sprite": "https://example.test/pikachu.gif",
+          "hp": 35,
+          "currentHp": 35,
+          "attack": 55,
+          "defense": 40,
+          "speed": 90,
+          "defeated": false
+        }
+      ]
     }
   ]
 }
@@ -405,6 +505,7 @@ Estados posibles de lobby:
   "pokemon": {
     "pokemonId": 6,
     "name": "Charizard",
+    "sprite": "https://example.test/charizard.gif",
     "hp": 78,
     "currentHp": 78,
     "attack": 84,

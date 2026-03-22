@@ -12,6 +12,11 @@ const battlePokemonSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    sprite: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     hp: {
       type: Number,
       required: true,

@@ -17,14 +17,14 @@ import {
 } from '../../integration/helpers/in-memory-state.js';
 
 const pokemonCatalog = [
-  { id: 1, name: 'Bulbasaur', hp: 45, attack: 49, defense: 49, speed: 45 },
-  { id: 4, name: 'Charmander', hp: 39, attack: 52, defense: 43, speed: 65 },
-  { id: 7, name: 'Squirtle', hp: 44, attack: 48, defense: 65, speed: 43 },
-  { id: 25, name: 'Pikachu', hp: 35, attack: 55, defense: 40, speed: 90 },
-  { id: 39, name: 'Jigglypuff', hp: 115, attack: 45, defense: 20, speed: 20 },
-  { id: 143, name: 'Snorlax', hp: 160, attack: 110, defense: 65, speed: 30 },
-  { id: 149, name: 'Dragonite', hp: 91, attack: 134, defense: 95, speed: 80 },
-  { id: 448, name: 'Lucario', hp: 70, attack: 110, defense: 70, speed: 90 },
+  { id: 1, name: 'Bulbasaur', sprite: 'https://example.test/bulbasaur.gif', hp: 45, attack: 49, defense: 49, speed: 45 },
+  { id: 4, name: 'Charmander', sprite: 'https://example.test/charmander.gif', hp: 39, attack: 52, defense: 43, speed: 65 },
+  { id: 7, name: 'Squirtle', sprite: 'https://example.test/squirtle.gif', hp: 44, attack: 48, defense: 65, speed: 43 },
+  { id: 25, name: 'Pikachu', sprite: 'https://example.test/pikachu.gif', hp: 35, attack: 55, defense: 40, speed: 90 },
+  { id: 39, name: 'Jigglypuff', sprite: 'https://example.test/jigglypuff.gif', hp: 115, attack: 45, defense: 20, speed: 20 },
+  { id: 143, name: 'Snorlax', sprite: 'https://example.test/snorlax.gif', hp: 160, attack: 110, defense: 65, speed: 30 },
+  { id: 149, name: 'Dragonite', sprite: 'https://example.test/dragonite.gif', hp: 91, attack: 134, defense: 95, speed: 80 },
+  { id: 448, name: 'Lucario', sprite: 'https://example.test/lucario.gif', hp: 70, attack: 110, defense: 70, speed: 90 },
 ];
 
 const pokemonCatalogById = Object.fromEntries(pokemonCatalog.map((pokemon) => [pokemon.id, pokemon]));
