@@ -32,6 +32,9 @@ export const normalizePlayerSessionPayload = (player, options = {}) => {
     payload.sessionToken = options.sessionToken;
   }
 
+  if (options.reconnectToken) {
+    payload.reconnectToken = options.reconnectToken;
+  }
   return payload;
 };
 
@@ -76,10 +79,24 @@ export const createPlayerSessionService = (dependencies = {}) => {
 
         return normalizePlayerSessionPayload(createdPlayer, {
           sessionToken,
+          reconnectToken,
         });
       }
 
       if (existingPlayer.sessionStatus === SESSION_STATUS.ACTIVE) {
+        if (existingPlayer.disconnectedAt) {
+          const reclaimedPlayer = await updatePlayerStateDependency(existingPlayer.id, {
+            sessionTokenHash,
+            reconnectToken,
+            lastSeenAt: new Date(),
+          });
+
+          return normalizePlayerSessionPayload(reclaimedPlayer, {
+            sessionToken,
+            reconnectToken,
+          });
+        }
+
         throw new AppError('Nickname is already in use', 409);
       }
 
@@ -87,6 +104,7 @@ export const createPlayerSessionService = (dependencies = {}) => {
 
       return normalizePlayerSessionPayload(updatedPlayer, {
         sessionToken,
+        reconnectToken,
       });
     });
   };
@@ -134,10 +152,14 @@ export const createPlayerSessionService = (dependencies = {}) => {
     }
 
     const updatedPlayer = await updatePlayerStateDependency(player.id, {
-      sessionStatus: SESSION_STATUS.CLOSED,
-      sessionTokenHash: null,
-      socketId: null,
-      lastSeenAt: new Date(),
+      $set: {
+        sessionStatus: SESSION_STATUS.CLOSED,
+        socketId: null,
+        lastSeenAt: new Date(),
+      },
+      $unset: {
+        sessionTokenHash: 1,
+      },
     });
 
     return normalizePlayerSessionPayload(updatedPlayer);

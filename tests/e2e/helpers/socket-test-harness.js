@@ -29,7 +29,7 @@ const pokemonCatalog = [
 
 const pokemonCatalogById = Object.fromEntries(pokemonCatalog.map((pokemon) => [pokemon.id, pokemon]));
 
-export const createSocketHarness = async () => {
+export const createSocketHarness = async ({ disconnectGracePeriodMs } = {}) => {
   const state = createInMemoryState();
   const lobbyDependencies = createInMemoryLobbyDependencies(state);
   const playerDependencies = createInMemoryPlayerDependencies(state);
@@ -52,6 +52,8 @@ export const createSocketHarness = async () => {
     findBattleByIdDependency: battleDependencies.findBattleById,
     findBattleByLobbyIdDependency: battleDependencies.findBattleByLobbyId,
     saveBattleDependency: battleDependencies.saveBattle,
+    findPlayerByIdDependency: playerDependencies.findPlayerById,
+    updatePlayerStateDependency: playerDependencies.updatePlayerState,
     updatePlayersStateDependency: playerDependencies.updatePlayersState,
     getPokemonByIdDependency: async (pokemonId) => pokemonCatalogById[pokemonId],
   });
@@ -68,6 +70,7 @@ export const createSocketHarness = async () => {
     findWaitingLobbyDependency: lobbyDependencies.findWaitingLobby,
     saveLobbyDependency: lobbyDependencies.saveLobby,
     findBattleByLobbyIdDependency: battleDependencies.findBattleByLobbyId,
+    resumeBattleAfterReconnectDependency: battleService.resumeBattleAfterReconnect,
     startBattleDependency: battleService.startBattle,
   });
 
@@ -93,6 +96,9 @@ export const createSocketHarness = async () => {
     assignRandomTeamDependency: teamAssignmentService.assignRandomTeam,
     markPlayerReadyDependency: lobbyService.markPlayerReady,
     processAttackDependency: battleService.processAttack,
+    pauseBattleForDisconnectDependency: battleService.pauseBattleForDisconnect,
+    finishBattleByDisconnectTimeoutDependency: battleService.finishBattleByDisconnectTimeout,
+    disconnectGracePeriodMs,
   });
 
   registerHandlers(io);

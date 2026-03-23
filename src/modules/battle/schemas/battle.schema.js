@@ -112,6 +112,20 @@ const battleSchema = new mongoose.Schema(
       ref: 'Player',
       default: null,
     },
+    disconnectedPlayerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Player',
+      default: null,
+    },
+    reconnectDeadlineAt: {
+      type: Date,
+      default: null,
+    },
+    finishReason: {
+      type: String,
+      default: null,
+      trim: true,
+    },
     players: {
       type: [battlePlayerSchema],
       default: [],

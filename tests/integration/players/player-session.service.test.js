@@ -39,6 +39,7 @@ test('createOrRefreshSession creates a new active player session', async () => {
   assert.equal(session.sessionStatus, 'active');
   assert.equal(typeof session.sessionToken, 'string');
   assert.equal(session.sessionToken.length > 0, true);
+  assert.equal(typeof session.reconnectToken, 'string');
   assert.equal(state.players[0].nicknameNormalized, 'ash');
 });
 
@@ -58,6 +59,29 @@ test('createOrRefreshSession rejects nicknames that already have an active sessi
       message: 'Nickname is already in use',
     },
   );
+});
+
+test('createOrRefreshSession reclaims a disconnected active session for the same nickname', async () => {
+  const { service, state } = createService();
+
+  const session = await service.createOrRefreshSession({
+    nickname: 'Ash',
+  });
+
+  state.players[0].status = 'battling';
+  state.players[0].activeBattleId = 'battle-1';
+  state.players[0].activeLobbyId = 'lobby-1';
+  state.players[0].disconnectedAt = new Date();
+
+  const reclaimedSession = await service.createOrRefreshSession({
+    nickname: 'Ash',
+  });
+
+  assert.equal(reclaimedSession.playerId, session.playerId);
+  assert.equal(reclaimedSession.currentBattleId, 'battle-1');
+  assert.equal(reclaimedSession.currentLobbyId, 'lobby-1');
+  assert.notEqual(reclaimedSession.sessionToken, session.sessionToken);
+  assert.notEqual(reclaimedSession.reconnectToken, session.reconnectToken);
 });
 
 test('authenticatePlayerSession resolves the active player from the bearer token', async () => {

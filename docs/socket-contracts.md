@@ -334,6 +334,10 @@ Ack exitoso:
       "lobbyId": "lobby-id",
       "status": "battling",
       "currentTurnPlayerId": "player-id",
+      "winnerPlayerId": null,
+      "disconnectedPlayerId": null,
+      "reconnectDeadlineAt": null,
+      "finishReason": null,
       "players": [
         {
           "playerId": "player-id",
@@ -364,11 +368,23 @@ Ack exitoso:
           ]
         }
       ]
-    }
+    },
+    "battleEnd": null,
+    "battleResumed": false
   }
 }
 ```
 
+Notas:
+
+- si el jugador vuelve durante una pausa por desconexion, `battleResumed` llega en `true`
+- si la batalla ya termino mientras el cliente estuvo fuera, `battleState` puede llegar en `null` y `battleEnd` contiene el resultado final
+- los snapshots de batalla ahora incluyen:
+  - `winnerPlayerId`
+  - `disconnectedPlayerId`
+  - `reconnectDeadlineAt`
+  - `finishReason`
+  
 ## Servidor -> cliente
 
 ### `search_status`
@@ -388,6 +404,8 @@ Payloads esperados:
   "playerId": "player-id",
   "status": "idle",
   "canceled": true
+    }
+  }
 }
 ```
 
@@ -445,6 +463,10 @@ Estados posibles de lobby:
   "lobbyId": "lobby-id",
   "status": "battling",
   "currentTurnPlayerId": "player-id",
+  "winnerPlayerId": null,
+  "disconnectedPlayerId": null,
+  "reconnectDeadlineAt": null,
+  "finishReason": null,
   "players": [
     {
       "playerId": "player-id",
@@ -475,6 +497,38 @@ Estados posibles de lobby:
       ]
     }
   ]
+}
+```
+
+### `battle_pause`
+
+```json
+{
+  "battleId": "battle-id",
+  "lobbyId": "lobby-id",
+  "status": "paused",
+  "currentTurnPlayerId": "player-id",
+  "winnerPlayerId": null,
+  "disconnectedPlayerId": "other-player-id",
+  "reconnectDeadlineAt": "2026-03-22T18:00:15.000Z",
+  "finishReason": null,
+  "players": []
+}
+```
+
+### `battle_resume`
+
+```json
+{
+  "battleId": "battle-id",
+  "lobbyId": "lobby-id",
+  "status": "battling",
+  "currentTurnPlayerId": "player-id",
+  "winnerPlayerId": null,
+  "disconnectedPlayerId": null,
+  "reconnectDeadlineAt": null,
+  "finishReason": null,
+  "players": []
 }
 ```
 
@@ -523,7 +577,9 @@ Estados posibles de lobby:
   "battleId": "battle-id",
   "lobbyId": "lobby-id",
   "winnerPlayerId": "player-id",
-  "status": "finished"
+  "status": "finished",
+  "reason": "disconnect_timeout",
+  "disconnectedPlayerId": "other-player-id"
 }
 ```
 
@@ -536,6 +592,7 @@ Estados posibles de lobby:
 - `Team assignment is locked once a player is ready`
 - `Player does not have an assigned team`
 - `Player cannot attack out of turn`
+- `Battle is paused awaiting player reconnection`
 - `Player not found`
 - `Battle not found`
 - `Invalid reconnect token`

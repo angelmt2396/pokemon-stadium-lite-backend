@@ -22,6 +22,7 @@ export const updatePlayerSocket = async (playerId, socketId) =>
     {
       socketId,
       lastSeenAt: new Date(),
+      disconnectedAt: null,
     },
     { new: true },
   );

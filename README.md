@@ -165,6 +165,9 @@ Notas:
 - `GET /api/v1/pokemon/:id` devuelve `400` si `id` no es un entero positivo válido
 - `/documentation` resume contratos REST y Socket.IO con ejemplos de requests, acks y eventos
 - `/documentation` incluye un probador ligero de endpoints REST y eventos Socket.IO desde el navegador
+- el heartbeat de Socket.IO es configurable con:
+  - `SOCKET_PING_INTERVAL_MS`
+  - `SOCKET_PING_TIMEOUT_MS`
 
 ## Socket.IO
 
@@ -183,6 +186,8 @@ Eventos servidor -> cliente:
 - `match_found`
 - `lobby_status`
 - `battle_start`
+- `battle_pause`
+- `battle_resume`
 - `turn_result`
 - `battle_end`
 
@@ -198,6 +203,9 @@ Notas:
 - `reconnect_player` requiere `reconnectToken`; `playerId` es opcional por compatibilidad y debe coincidir con la sesion
 - `search_match` usa la identidad autenticada de la sesion y devuelve `reconnectToken` en el ack exitoso
 - `lobby_status`, `assign_pokemon`, `battle_start` y `reconnect_player` incluyen `sprite` en cada Pokemon; los snapshots de batalla tambien incluyen `team[]` completa por jugador
+- si un jugador se desconecta durante una batalla activa, el backend emite `battle_pause`, espera hasta 15 segundos y:
+  - emite `battle_resume` si el jugador vuelve a tiempo
+  - emite `battle_end` con `reason = disconnect_timeout` si no regresa
 
 ## Estructura
 

@@ -29,6 +29,14 @@ const envSchema = z
       .number()
       .int('SHUTDOWN_TIMEOUT_MS must be an integer')
       .positive('SHUTDOWN_TIMEOUT_MS must be greater than 0'),
+    SOCKET_PING_INTERVAL_MS: z.coerce
+      .number()
+      .int('SOCKET_PING_INTERVAL_MS must be an integer')
+      .positive('SOCKET_PING_INTERVAL_MS must be greater than 0'),
+    SOCKET_PING_TIMEOUT_MS: z.coerce
+      .number()
+      .int('SOCKET_PING_TIMEOUT_MS must be an integer')
+      .positive('SOCKET_PING_TIMEOUT_MS must be greater than 0'),
     CLIENT_ORIGIN: z.string().trim().min(1, 'CLIENT_ORIGIN is required'),
     MONGODB_URI: z.string().trim(),
     POKEMON_API_BASE_URL: z.string().url('POKEMON_API_BASE_URL must be a valid URL'),
@@ -81,6 +89,8 @@ export const parseEnv = (source, options = {}) => {
     LOG_LEVEL: source.LOG_LEVEL,
     PORT: source.PORT ?? '3000',
     SHUTDOWN_TIMEOUT_MS: source.SHUTDOWN_TIMEOUT_MS ?? '10000',
+    SOCKET_PING_INTERVAL_MS: source.SOCKET_PING_INTERVAL_MS ?? '5000',
+    SOCKET_PING_TIMEOUT_MS: source.SOCKET_PING_TIMEOUT_MS ?? '5000',
     CLIENT_ORIGIN: source.CLIENT_ORIGIN ?? DEFAULT_CLIENT_ORIGIN,
     MONGODB_URI: source.MONGODB_URI ?? '',
     POKEMON_API_BASE_URL: source.POKEMON_API_BASE_URL ?? DEFAULT_POKEMON_API_BASE_URL,
@@ -99,6 +109,8 @@ export const parseEnv = (source, options = {}) => {
       (parsedEnv.data.NODE_ENV === 'test' || options.runningNodeTests ? 'silent' : 'info'),
     port: parsedEnv.data.PORT,
     shutdownTimeoutMs: parsedEnv.data.SHUTDOWN_TIMEOUT_MS,
+    socketPingIntervalMs: parsedEnv.data.SOCKET_PING_INTERVAL_MS,
+    socketPingTimeoutMs: parsedEnv.data.SOCKET_PING_TIMEOUT_MS,
     clientOrigins: parseClientOrigins(parsedEnv.data.CLIENT_ORIGIN),
     mongodbUri: parsedEnv.data.MONGODB_URI,
     pokemonApiBaseUrl: parsedEnv.data.POKEMON_API_BASE_URL,

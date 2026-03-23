@@ -10,9 +10,7 @@ export const createPlayerSessionRouter = (dependencies = {}) => {
   const requirePlayerSession = createRequirePlayerSessionMiddleware({
     authenticatePlayerSessionDependency: dependencies.authenticatePlayerSessionDependency,
   });
-  const { createSession, getCurrentSession, deleteCurrentSession } = createPlayerSessionController(
-    dependencies,
-  );
+  const { createSession, getCurrentSession, deleteCurrentSession } = createPlayerSessionController(dependencies);
 
   router.post('/', validateRequest({ body: playerSessionBodySchema }), createSession);
   router.get('/me', requirePlayerSession, getCurrentSession);

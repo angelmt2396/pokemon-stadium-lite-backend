@@ -434,8 +434,12 @@ export const openApiSpec = {
                 type: 'string',
                 example: 'opaque-session-token',
               },
+              reconnectToken: {
+                type: 'string',
+                example: 'reconnect-token-1',
+              },
             },
-            required: ['sessionToken'],
+            required: ['sessionToken', 'reconnectToken'],
           },
         ],
       },

@@ -11,10 +11,14 @@ export const createSocketServer = (httpServer) => {
     cors: {
       origin: env.clientOrigins,
     },
+    pingInterval: env.socketPingIntervalMs,
+    pingTimeout: env.socketPingTimeoutMs,
   });
 
   logger.info('socket_server_initialized', {
     clientOrigins: env.clientOrigins,
+    pingInterval: env.socketPingIntervalMs,
+    pingTimeout: env.socketPingTimeoutMs,
   });
 
   registerSocketHandlers(ioInstance);

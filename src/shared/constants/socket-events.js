@@ -12,6 +12,8 @@ export const SOCKET_EVENTS = {
     MATCH_FOUND: 'match_found',
     LOBBY_STATUS: 'lobby_status',
     BATTLE_START: 'battle_start',
+    BATTLE_PAUSE: 'battle_pause',
+    BATTLE_RESUME: 'battle_resume',
     TURN_RESULT: 'turn_result',
     BATTLE_END: 'battle_end',
   },

@@ -187,18 +187,19 @@ test('socket flow supports reconnect_player with a real client during battle', a
 
     try {
       const lobbyStatusAfterReconnect = onceEvent(reconnectedClient, SOCKET_EVENTS.SERVER.LOBBY_STATUS);
-      const battleStartAfterReconnect = onceEvent(reconnectedClient, SOCKET_EVENTS.SERVER.BATTLE_START);
+      const battleResumeAfterReconnect = onceEvent(reconnectedClient, SOCKET_EVENTS.SERVER.BATTLE_RESUME);
       const reconnectAck = await emitWithAck(reconnectedClient, SOCKET_EVENTS.CLIENT.RECONNECT_PLAYER, {
         reconnectToken,
       });
       const [reconnectedLobbyStatus, reconnectedBattleState] = await Promise.all([
         lobbyStatusAfterReconnect,
-        battleStartAfterReconnect,
+        battleResumeAfterReconnect,
       ]);
 
       assert.equal(reconnectAck.ok, true);
       assert.equal(reconnectAck.data.playerId, reconnectingPlayerId);
       assert.equal(reconnectAck.data.battleState.battleId, battleState.battleId);
+      assert.equal(reconnectAck.data.battleResumed, true);
       assert.equal(reconnectedLobbyStatus.status, 'battling');
       assert.equal(reconnectedBattleState.battleId, battleState.battleId);
 
@@ -220,6 +221,82 @@ test('socket flow supports reconnect_player with a real client during battle', a
     } finally {
       reconnectedClient.disconnect();
     }
+  } finally {
+    await harness.close();
+  }
+});
+
+test('socket flow pauses the battle on disconnect and resumes it when the player returns in time', async () => {
+  const harness = await createSocketHarness({
+    disconnectGracePeriodMs: 200,
+  });
+
+  try {
+    const { ash, misty, ashSession, mistySession, ashJoinAck, mistyJoinAck, battleState } = await setupBattleSession(harness);
+    const reconnectingSocket = battleState.currentTurnPlayerId === ashJoinAck.data.playerId ? ash : misty;
+    const waitingSocket = reconnectingSocket === ash ? misty : ash;
+    const reconnectToken = reconnectingSocket === ash ? ashJoinAck.data.reconnectToken : mistyJoinAck.data.reconnectToken;
+    const reconnectSessionToken = reconnectingSocket === ash ? ashSession.sessionToken : mistySession.sessionToken;
+
+    const waitingPause = onceEvent(waitingSocket, SOCKET_EVENTS.SERVER.BATTLE_PAUSE);
+    reconnectingSocket.disconnect();
+    const pausedPayload = await waitingPause;
+
+    assert.equal(pausedPayload.status, BATTLE_STATUS.PAUSED);
+    assert.equal(pausedPayload.battleId, battleState.battleId);
+
+    const reconnectedClient = await harness.connectClient({
+      sessionToken: reconnectSessionToken,
+    });
+
+    try {
+      const reconnectAckPromise = emitWithAck(reconnectedClient, SOCKET_EVENTS.CLIENT.RECONNECT_PLAYER, {
+        reconnectToken,
+      });
+      const resumedForWaiting = onceEvent(waitingSocket, SOCKET_EVENTS.SERVER.BATTLE_RESUME);
+      const resumedForReconnect = onceEvent(reconnectedClient, SOCKET_EVENTS.SERVER.BATTLE_RESUME);
+      const [reconnectAck, resumedWaitingPayload, resumedReconnectPayload] = await Promise.all([
+        reconnectAckPromise,
+        resumedForWaiting,
+        resumedForReconnect,
+      ]);
+
+      assert.equal(reconnectAck.ok, true);
+      assert.equal(reconnectAck.data.battleResumed, true);
+      assert.equal(resumedWaitingPayload.status, BATTLE_STATUS.BATTLING);
+      assert.equal(resumedReconnectPayload.status, BATTLE_STATUS.BATTLING);
+      assert.equal(resumedReconnectPayload.disconnectedPlayerId, null);
+    } finally {
+      reconnectedClient.disconnect();
+    }
+  } finally {
+    await harness.close();
+  }
+});
+
+test('socket flow ends the battle after a disconnect timeout and awards the win to the waiting player', async () => {
+  const harness = await createSocketHarness({
+    disconnectGracePeriodMs: 50,
+  });
+
+  try {
+    const { ash, misty, ashJoinAck, mistyJoinAck, battleState } = await setupBattleSession(harness);
+    const reconnectingSocket = battleState.currentTurnPlayerId === ashJoinAck.data.playerId ? ash : misty;
+    const waitingSocket = reconnectingSocket === ash ? misty : ash;
+    const expectedWinnerPlayerId = reconnectingSocket === ash ? mistyJoinAck.data.playerId : ashJoinAck.data.playerId;
+
+    const pausePromise = onceEvent(waitingSocket, SOCKET_EVENTS.SERVER.BATTLE_PAUSE);
+    const battleEndPromise = onceEvent(waitingSocket, SOCKET_EVENTS.SERVER.BATTLE_END);
+
+    reconnectingSocket.disconnect();
+
+    const pausedPayload = await pausePromise;
+    const battleEnd = await battleEndPromise;
+
+    assert.equal(pausedPayload.status, BATTLE_STATUS.PAUSED);
+    assert.equal(battleEnd.battleId, battleState.battleId);
+    assert.equal(battleEnd.reason, 'disconnect_timeout');
+    assert.equal(battleEnd.winnerPlayerId, expectedWinnerPlayerId);
   } finally {
     await harness.close();
   }

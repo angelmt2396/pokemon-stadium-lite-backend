@@ -11,6 +11,24 @@ const nextId = (state, prefix) => `${prefix}-${++state.sequence}`;
 
 const clonePayload = (payload) => structuredClone(payload);
 
+const applyMongoStyleUpdate = (entity, payload) => {
+  if (payload.$set) {
+    Object.assign(entity, payload.$set);
+  }
+
+  if (payload.$unset) {
+    for (const key of Object.keys(payload.$unset)) {
+      delete entity[key];
+    }
+  }
+
+  const directPayload = Object.fromEntries(
+    Object.entries(payload).filter(([key]) => key !== '$set' && key !== '$unset'),
+  );
+
+  Object.assign(entity, directPayload);
+};
+
 export const createInMemoryPlayerDependencies = (state) => ({
   createPlayer: async (payload) => {
     const player = {
@@ -21,10 +39,11 @@ export const createInMemoryPlayerDependencies = (state) => ({
       reconnectToken: payload.reconnectToken ?? nextId(state, 'reconnect-token'),
       status: payload.status ?? 'idle',
       sessionStatus: payload.sessionStatus ?? 'closed',
-      sessionTokenHash: payload.sessionTokenHash ?? null,
+      sessionTokenHash: payload.sessionTokenHash,
       activeLobbyId: payload.activeLobbyId ?? null,
       activeBattleId: payload.activeBattleId ?? null,
       lastSeenAt: payload.lastSeenAt ?? new Date(),
+      disconnectedAt: payload.disconnectedAt ?? null,
     };
 
     state.players.push(player);
@@ -39,10 +58,11 @@ export const createInMemoryPlayerDependencies = (state) => ({
       reconnectToken: nextId(state, 'reconnect-token'),
       status: 'idle',
       sessionStatus: 'closed',
-      sessionTokenHash: null,
+      sessionTokenHash: undefined,
       activeLobbyId: null,
       activeBattleId: null,
       lastSeenAt: new Date(),
+      disconnectedAt: null,
     };
 
     state.players.push(player);
@@ -64,6 +84,7 @@ export const createInMemoryPlayerDependencies = (state) => ({
 
     player.socketId = socketId;
     player.lastSeenAt = new Date();
+    player.disconnectedAt = null;
     return player;
   },
   updatePlayerState: async (playerId, payload) => {
@@ -73,13 +94,13 @@ export const createInMemoryPlayerDependencies = (state) => ({
       return null;
     }
 
-    Object.assign(player, payload);
+    applyMongoStyleUpdate(player, payload);
     return player;
   },
   updatePlayersState: async (playerIds, payload) => {
     for (const player of state.players) {
       if (playerIds.some((playerId) => String(playerId) === String(player.id))) {
-        Object.assign(player, payload);
+        applyMongoStyleUpdate(player, payload);
       }
     }
 

@@ -56,6 +56,7 @@ test('POST /api/v1/player-sessions creates a lightweight session and returns the
     assert.equal(body.data.nickname, 'Ash');
     assert.equal(body.data.sessionStatus, 'active');
     assert.equal(typeof body.data.sessionToken, 'string');
+    assert.equal(typeof body.data.reconnectToken, 'string');
   } finally {
     await stopTestServer(server);
   }
@@ -96,6 +97,49 @@ test('GET /api/v1/player-sessions/me restores the authenticated session', async 
         currentBattleId: null,
       },
     });
+  } finally {
+    await stopTestServer(server);
+  }
+});
+
+test('POST /api/v1/player-sessions reclaims a disconnected battle session for the same nickname', async () => {
+  const { app, state } = createSessionApp();
+  const { server, baseUrl } = await startTestServer(app);
+
+  try {
+    const firstResponse = await fetch(`${baseUrl}/api/v1/player-sessions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        nickname: 'Ash',
+      }),
+    });
+    const firstBody = await firstResponse.json();
+
+    state.players[0].status = 'battling';
+    state.players[0].activeLobbyId = 'lobby-1';
+    state.players[0].activeBattleId = 'battle-1';
+    state.players[0].disconnectedAt = new Date();
+
+    const reclaimResponse = await fetch(`${baseUrl}/api/v1/player-sessions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        nickname: 'Ash',
+      }),
+    });
+    const reclaimBody = await reclaimResponse.json();
+
+    assert.equal(reclaimResponse.status, 201);
+    assert.equal(reclaimBody.success, true);
+    assert.equal(reclaimBody.data.playerId, firstBody.data.playerId);
+    assert.equal(reclaimBody.data.currentLobbyId, 'lobby-1');
+    assert.equal(reclaimBody.data.currentBattleId, 'battle-1');
+    assert.notEqual(reclaimBody.data.sessionToken, firstBody.data.sessionToken);
   } finally {
     await stopTestServer(server);
   }

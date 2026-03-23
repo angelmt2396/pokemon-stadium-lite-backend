@@ -12,7 +12,7 @@ import {
   saveLobby,
 } from '../repositories/lobby.repository.js';
 import { findBattleByLobbyId } from '../../battle/repositories/battle.repository.js';
-import { normalizeBattleStatePayload, startBattle } from '../../battle/services/battle.service.js';
+import { normalizeBattleEndPayload, normalizeBattleStatePayload, resumeBattleAfterReconnect, startBattle } from '../../battle/services/battle.service.js';
 
 const MATCHMAKING_LOCK_KEY = 'matchmaking';
 const normalizeNickname = (nickname) => nickname.trim().toLowerCase();
@@ -50,6 +50,8 @@ export const createLobbyService = (dependencies = {}) => {
     saveLobbyDependency = saveLobby,
     findBattleByLobbyIdDependency = findBattleByLobbyId,
     normalizeBattleStatePayloadDependency = normalizeBattleStatePayload,
+    normalizeBattleEndPayloadDependency = normalizeBattleEndPayload,
+    resumeBattleAfterReconnectDependency = resumeBattleAfterReconnect,
     startBattleDependency = startBattle,
   } = dependencies;
 
@@ -161,14 +163,29 @@ export const createLobbyService = (dependencies = {}) => {
 
       const previousSocketId = player.socketId;
       const updatedPlayer = await updatePlayerSocketDependency(player.id, socketId);
-      const battle = await findBattleByLobbyIdDependency(lobby.id);
+      const resumeResult = await resumeBattleAfterReconnectDependency({
+        playerId: updatedPlayer.id,
+      });
+      const battle = resumeResult.battleState
+        ? null
+        : resumeResult.battleEnd
+          ? null
+          : await findBattleByLobbyIdDependency(lobby.id);
+      const resolvedBattleState =
+        resumeResult.battleState ??
+        (battle && battle.status !== BATTLE_STATUS.FINISHED ? normalizeBattleStatePayloadDependency(battle) : null);
+      const resolvedBattleEnd =
+        resumeResult.battleEnd ??
+        (battle && battle.status === BATTLE_STATUS.FINISHED ? normalizeBattleEndPayloadDependency(battle) : null);
 
       return {
         playerId: updatedPlayer.id,
         lobbyId: lobby.id,
         previousSocketId,
         lobbyStatus: normalizeLobbyStatusPayload(lobby),
-        battleState: battle ? normalizeBattleStatePayloadDependency(battle) : null,
+        battleState: resolvedBattleState,
+        battleEnd: resolvedBattleEnd,
+        battleResumed: resumeResult.resumed,
       };
     });
 

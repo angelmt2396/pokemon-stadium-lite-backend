@@ -39,7 +39,7 @@ const playerSchema = new mongoose.Schema(
     },
     sessionTokenHash: {
       type: String,
-      default: null,
+      default: undefined,
     },
     activeLobbyId: {
       type: mongoose.Schema.Types.ObjectId,
@@ -54,6 +54,10 @@ const playerSchema = new mongoose.Schema(
     lastSeenAt: {
       type: Date,
       default: Date.now,
+    },
+    disconnectedAt: {
+      type: Date,
+      default: null,
     },
   },
   {

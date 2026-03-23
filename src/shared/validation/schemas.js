@@ -18,7 +18,6 @@ export const playerIdSchema = requiredTrimmedString('playerId');
 export const lobbyIdSchema = requiredTrimmedString('lobbyId');
 export const battleIdSchema = requiredTrimmedString('battleId');
 export const reconnectTokenSchema = requiredTrimmedString('reconnectToken');
-
 export const joinLobbyPayloadSchema = z
   .object({
     nickname: nicknameSchema.optional(),

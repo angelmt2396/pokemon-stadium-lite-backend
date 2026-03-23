@@ -30,6 +30,8 @@ const createService = () => {
       id: 'player-ash',
       nickname: 'Ash',
       socketId: 'socket-ash',
+      sessionStatus: 'active',
+      sessionTokenHash: 'token-hash-ash',
       status: 'in_lobby',
       activeLobbyId: 'lobby-1',
       activeBattleId: null,
@@ -38,6 +40,8 @@ const createService = () => {
       id: 'player-misty',
       nickname: 'Misty',
       socketId: 'socket-misty',
+      sessionStatus: 'active',
+      sessionTokenHash: 'token-hash-misty',
       status: 'in_lobby',
       activeLobbyId: 'lobby-1',
       activeBattleId: null,
@@ -81,6 +85,8 @@ const createService = () => {
     findBattleByIdDependency: battleDependencies.findBattleById,
     findBattleByLobbyIdDependency: battleDependencies.findBattleByLobbyId,
     saveBattleDependency: battleDependencies.saveBattle,
+    findPlayerByIdDependency: playerDependencies.findPlayerById,
+    updatePlayerStateDependency: playerDependencies.updatePlayerState,
     updatePlayersStateDependency: playerDependencies.updatePlayersState,
     getPokemonByIdDependency: async (pokemonId) => pokemonCatalogById[pokemonId],
   });
@@ -166,4 +172,81 @@ test('processAttack finishes the battle when the defender has no remaining pokem
   assert.equal(state.players[1].activeLobbyId, null);
   assert.equal(state.players[0].activeBattleId, null);
   assert.equal(state.players[1].activeBattleId, null);
+});
+
+test('pauseBattleForDisconnect pauses an active battle and sets a reconnect deadline', async () => {
+  const { state, service } = createService();
+
+  const battleState = await service.startBattle({
+    lobbyId: 'lobby-1',
+  });
+
+  const pausedState = await service.pauseBattleForDisconnect({
+    playerId: 'player-ash',
+    socketId: 'socket-ash',
+    gracePeriodMs: 15_000,
+  });
+
+  assert.equal(pausedState.battleId, battleState.battleId);
+  assert.equal(pausedState.status, BATTLE_STATUS.PAUSED);
+  assert.equal(pausedState.disconnectedPlayerId, 'player-ash');
+  assert.equal(typeof pausedState.reconnectDeadlineAt, 'string');
+  assert.equal(state.players[0].socketId, null);
+  assert.ok(state.players[0].disconnectedAt instanceof Date);
+});
+
+test('resumeBattleAfterReconnect resumes a paused battle before the deadline', async () => {
+  const { state, service } = createService();
+
+  const battleState = await service.startBattle({
+    lobbyId: 'lobby-1',
+  });
+
+  await service.pauseBattleForDisconnect({
+    playerId: 'player-ash',
+    socketId: 'socket-ash',
+    gracePeriodMs: 15_000,
+  });
+
+  state.players[0].socketId = 'socket-ash-reconnected';
+  const result = await service.resumeBattleAfterReconnect({
+    playerId: 'player-ash',
+  });
+
+  assert.equal(result.resumed, true);
+  assert.equal(result.battleEnd, null);
+  assert.equal(result.battleState.battleId, battleState.battleId);
+  assert.equal(result.battleState.status, BATTLE_STATUS.BATTLING);
+  assert.equal(result.battleState.disconnectedPlayerId, null);
+  assert.equal(state.battles[0].reconnectDeadlineAt, null);
+});
+
+test('finishBattleByDisconnectTimeout awards the victory to the remaining player', async () => {
+  const { state, service } = createService();
+
+  const battleState = await service.startBattle({
+    lobbyId: 'lobby-1',
+  });
+
+  await service.pauseBattleForDisconnect({
+    playerId: 'player-ash',
+    socketId: 'socket-ash',
+    gracePeriodMs: 1,
+  });
+
+  state.battles[0].reconnectDeadlineAt = new Date(Date.now() - 100);
+
+  const battleEnd = await service.finishBattleByDisconnectTimeout({
+    battleId: battleState.battleId,
+  });
+
+  assert.equal(battleEnd.battleId, battleState.battleId);
+  assert.equal(battleEnd.winnerPlayerId, 'player-misty');
+  assert.equal(battleEnd.reason, 'disconnect_timeout');
+  assert.equal(state.battles[0].status, BATTLE_STATUS.FINISHED);
+  assert.equal(state.players[0].sessionStatus, 'closed');
+  assert.equal(state.players[0].sessionTokenHash, undefined);
+  assert.equal(state.players[0].status, 'idle');
+  assert.equal(state.players[1].status, 'idle');
+  assert.equal(state.players[1].sessionStatus, 'active');
 });

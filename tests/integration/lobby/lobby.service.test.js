@@ -37,6 +37,8 @@ const createServices = () => {
     findBattleByIdDependency: battleDependencies.findBattleById,
     findBattleByLobbyIdDependency: battleDependencies.findBattleByLobbyId,
     saveBattleDependency: battleDependencies.saveBattle,
+    findPlayerByIdDependency: playerDependencies.findPlayerById,
+    updatePlayerStateDependency: playerDependencies.updatePlayerState,
     updatePlayersStateDependency: playerDependencies.updatePlayersState,
     getPokemonByIdDependency: async (pokemonId) => pokemonCatalogById[pokemonId],
   });
@@ -63,6 +65,7 @@ const createServices = () => {
     saveLobbyDependency: lobbyDependencies.saveLobby,
     findBattleByLobbyIdDependency: battleDependencies.findBattleByLobbyId,
     normalizeBattleStatePayloadDependency: normalizeBattleStatePayload,
+    resumeBattleAfterReconnectDependency: battleService.resumeBattleAfterReconnect,
     startBattleDependency: battleService.startBattle,
   });
 

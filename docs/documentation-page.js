@@ -438,6 +438,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
                 sessionStatus: 'active',
                 playerStatus: 'idle',
                 sessionToken: 'opaque-session-token',
+                reconnectToken: 'reconnect-token-1',
                 currentLobbyId: null,
                 currentBattleId: null,
               },

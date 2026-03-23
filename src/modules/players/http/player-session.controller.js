@@ -58,5 +58,4 @@ export const createPlayerSessionController = (dependencies = {}) => {
   };
 };
 
-export const { createSession, getCurrentSession, deleteCurrentSession } =
-  createPlayerSessionController();
+export const { createSession, getCurrentSession, deleteCurrentSession } = createPlayerSessionController();

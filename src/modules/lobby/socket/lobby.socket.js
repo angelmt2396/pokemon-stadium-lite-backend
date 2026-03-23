@@ -26,6 +26,7 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
     reconnectPlayerDependency = reconnectPlayer,
     assignRandomTeamDependency = assignRandomTeam,
     markPlayerReadyDependency = markPlayerReady,
+    onBattleResumedDependency = () => {},
   } = dependencies;
 
   return (socket, io) => {
@@ -162,13 +163,20 @@ export const createLobbySocketHandlers = (dependencies = {}) => {
           socket.join(result.lobbyId);
           socket.emit(SOCKET_EVENTS.SERVER.LOBBY_STATUS, result.lobbyStatus);
 
-          if (result.battleState) {
+          if (result.battleResumed && result.battleState) {
+            onBattleResumedDependency(result.battleState.battleId);
+            io.to(result.lobbyId).emit(SOCKET_EVENTS.SERVER.BATTLE_RESUME, result.battleState);
+          } else if (result.battleState) {
             const serverEvent =
-              result.battleState.status === BATTLE_STATUS.FINISHED
-                ? SOCKET_EVENTS.SERVER.BATTLE_END
+              result.battleState.status === BATTLE_STATUS.PAUSED
+                ? SOCKET_EVENTS.SERVER.BATTLE_PAUSE
                 : SOCKET_EVENTS.SERVER.BATTLE_START;
 
             socket.emit(serverEvent, result.battleState);
+          }
+
+          if (result.battleEnd) {
+            socket.emit(SOCKET_EVENTS.SERVER.BATTLE_END, result.battleEnd);
           }
 
           respond(callback, {
