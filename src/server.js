@@ -22,11 +22,18 @@ const shutdownManager = createGracefulShutdownManager({
 shutdownManager.registerSignalHandlers();
 
 const startServer = async () => {
+  logger.info('server_booting', {
+    port: env.port,
+    nodeEnv: env.nodeEnv,
+    logLevel: env.logLevel,
+  });
+
   await connectDatabase();
 
-  server.listen(env.port, () => {
+  server.listen(env.port, '0.0.0.0', () => {
     logger.info('server_started', {
       port: env.port,
+      host: '0.0.0.0',
       nodeEnv: env.nodeEnv,
       logLevel: env.logLevel,
       shutdownTimeoutMs: env.shutdownTimeoutMs,
