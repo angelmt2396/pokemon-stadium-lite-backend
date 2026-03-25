@@ -198,6 +198,8 @@ Contrato detallado:
 Notas:
 
 - el socket requiere `auth.sessionToken` durante el handshake
+- cuando un socket autenticado se conecta, el backend lo asocia a la sesion activa del jugador
+- si ese socket se desconecta fuera de una batalla, la sesion queda reclamable para el mismo `nickname`
 - los payloads de entrada se validan con `zod` antes de tocar la capa de negocio
 - los errores de validación en Socket.IO responden vía ack con `{ "ok": false, "message": "..." }`
 - `reconnect_player` requiere `reconnectToken`; `playerId` es opcional por compatibilidad y debe coincidir con la sesion

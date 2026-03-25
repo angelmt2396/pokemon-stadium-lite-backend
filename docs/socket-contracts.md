@@ -9,6 +9,8 @@ Base namespace:
 Autenticacion de socket:
 
 - el cliente debe conectarse con `auth.sessionToken`
+- al conectar, el backend vincula ese socket con la sesion activa del jugador
+- si el socket se desconecta mientras el jugador esta `idle`, la sesion queda reclamable para el mismo `nickname`
 - ejemplo:
 
 ```js
@@ -53,7 +55,7 @@ Ejemplo de error de validación:
 ## Reglas de validación
 
 - `nickname`
-  - string opcional en `search_match`
+  - string opcional legacy en `search_match`
   - se aplica `trim`
   - si se envia, no puede quedar vacío
   - máximo 30 caracteres
@@ -97,6 +99,7 @@ Compatibilidad temporal:
 ```
 
 - si se envia `nickname`, el backend lo valida pero la identidad real sale de la sesion
+- el payload recomendado sigue siendo `{}`; `nickname` solo existe por compatibilidad temporal
 
 ### `cancel_search`
 
@@ -378,6 +381,7 @@ Ack exitoso:
 Notas:
 
 - si el jugador vuelve durante una pausa por desconexion, `battleResumed` llega en `true`
+- el socket ya llega autenticado por sesion; `reconnectToken` solo reatacha lobby/batalla sobre esa identidad autenticada
 - si la batalla ya termino mientras el cliente estuvo fuera, `battleState` puede llegar en `null` y `battleEnd` contiene el resultado final
 - los snapshots de batalla ahora incluyen:
   - `winnerPlayerId`

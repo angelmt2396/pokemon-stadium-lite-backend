@@ -602,10 +602,9 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
             <h3>Matchmaking request example</h3>
             <pre>${renderJson({
               event: 'search_match',
-              payload: {
-                nickname: 'Ash',
-              },
+              payload: {},
             })}</pre>
+            <p class="muted" style="margin-top: 12px;">The backend resolves the player from <code>auth.sessionToken</code>; matchmaking no longer needs <code>nickname</code> in the Socket.IO payload.</p>
           </article>
 
           <article class="card">
@@ -692,7 +691,6 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
             <h3>Reconnect ack example</h3>
             <pre>${renderJson({
               request: {
-                playerId: 'player-2',
                 reconnectToken: 'reconnect-token-2',
               },
               ok: true,
@@ -1192,7 +1190,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
             <div class="template-list" style="margin-top: 16px;">
               <div class="template-item">
                 <strong><code>search_match</code></strong>
-                <span>Recommended matchmaking event. Successful ack returns <code>playerId</code>, <code>lobbyId</code> and <code>reconnectToken</code>.</span>
+                <span>Recommended matchmaking event. Payload: <code>{}</code>. Successful ack returns <code>playerId</code>, <code>lobbyId</code> and <code>reconnectToken</code>.</span>
               </div>
               <div class="template-item">
                 <strong><code>cancel_search</code></strong>
@@ -1200,7 +1198,7 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
               </div>
               <div class="template-item">
                 <strong><code>reconnect_player</code></strong>
-                <span>Requires <code>{ playerId, reconnectToken }</code> and restores lobby/battle state.</span>
+                <span>Requires <code>{ reconnectToken }</code> and restores lobby/battle state for the authenticated socket session.</span>
               </div>
               <div class="template-item">
                 <strong><code>assign_pokemon</code></strong>
@@ -1218,6 +1216,10 @@ export const buildDocumentationPage = () => `<!DOCTYPE html>
 
             <h3 style="margin-top: 24px;">Server Events Reference</h3>
             <div class="template-list" style="margin-top: 16px;">
+              <div class="template-item">
+                <strong>Authenticated socket lifecycle</strong>
+                <span>Connecting with <code>auth.sessionToken</code> binds the socket to the active session. If that socket disconnects while the player is idle, the same nickname becomes reclaimable for that player.</span>
+              </div>
               <div class="template-item">
                 <strong><code>search_status</code></strong>
                 <span>Emitted when a player enters or leaves matchmaking.</span>
