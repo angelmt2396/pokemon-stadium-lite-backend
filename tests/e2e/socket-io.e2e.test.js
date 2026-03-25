@@ -409,6 +409,24 @@ test('socket flow supports cancel_search for a player still waiting alone', asyn
   }
 });
 
+test('socket flow allows reclaiming an idle nickname after the authenticated socket disconnects', async () => {
+  const harness = await createSocketHarness();
+
+  try {
+    const ash = await createAuthenticatedClient(harness, 'Ash');
+
+    ash.client.disconnect();
+    await new Promise((resolve) => setTimeout(resolve, 25));
+
+    const reclaimedSession = await harness.createSession('Ash');
+
+    assert.equal(reclaimedSession.playerId, ash.session.playerId);
+    assert.notEqual(reclaimedSession.sessionToken, ash.session.sessionToken);
+  } finally {
+    await harness.close();
+  }
+});
+
 test('socket flow rejects invalid payloads before business logic', async () => {
   const harness = await createSocketHarness();
 

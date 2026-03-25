@@ -127,3 +127,29 @@ test('closePlayerSession invalidates the token and allows logging in again', asy
   assert.equal(reopenedSession.playerId, session.playerId);
   assert.equal(reopenedSession.sessionStatus, 'active');
 });
+
+test('markPlayerDisconnected marks the active session as reclaimable for the same nickname', async () => {
+  const { service } = createService();
+
+  const session = await service.createOrRefreshSession({
+    nickname: 'Ash',
+  });
+
+  await service.bindPlayerSocket({
+    playerId: session.playerId,
+    socketId: 'socket-1',
+  });
+
+  await service.markPlayerDisconnected({
+    playerId: session.playerId,
+    socketId: 'socket-1',
+  });
+
+  const reclaimedSession = await service.createOrRefreshSession({
+    nickname: 'Ash',
+  });
+
+  assert.equal(reclaimedSession.playerId, session.playerId);
+  assert.notEqual(reclaimedSession.sessionToken, session.sessionToken);
+  assert.notEqual(reclaimedSession.reconnectToken, session.reconnectToken);
+});

@@ -90,6 +90,8 @@ export const createSocketHarness = async ({ disconnectGracePeriodMs } = {}) => {
 
   const registerHandlers = createSocketHandlersRegistrar({
     authenticatePlayerSessionDependency: playerSessionService.authenticatePlayerSession,
+    bindPlayerSocketDependency: playerSessionService.bindPlayerSocket,
+    markPlayerDisconnectedDependency: playerSessionService.markPlayerDisconnected,
     joinLobbyDependency: lobbyService.joinLobby,
     cancelSearchDependency: lobbyService.cancelSearch,
     reconnectPlayerDependency: lobbyService.reconnectPlayer,

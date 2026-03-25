@@ -136,6 +136,42 @@ export const createPlayerSessionService = (dependencies = {}) => {
     return normalizePlayerSessionPayload(player);
   };
 
+  const bindPlayerSocket = async ({ playerId, socketId }) => {
+    if (!playerId || !socketId) {
+      return null;
+    }
+
+    const player = await findPlayerByIdDependency(playerId);
+
+    if (!player) {
+      throw new AppError('Player not found', 404);
+    }
+
+    return updatePlayerStateDependency(player.id, {
+      socketId,
+      disconnectedAt: null,
+      lastSeenAt: new Date(),
+    });
+  };
+
+  const markPlayerDisconnected = async ({ playerId, socketId }) => {
+    if (!playerId || !socketId) {
+      return null;
+    }
+
+    const player = await findPlayerByIdDependency(playerId);
+
+    if (!player || String(player.socketId ?? '') !== String(socketId)) {
+      return null;
+    }
+
+    return updatePlayerStateDependency(player.id, {
+      socketId: null,
+      disconnectedAt: new Date(),
+      lastSeenAt: new Date(),
+    });
+  };
+
   const closePlayerSession = async ({ playerId }) => {
     const player = await findPlayerByIdDependency(playerId);
 
@@ -169,6 +205,8 @@ export const createPlayerSessionService = (dependencies = {}) => {
     createOrRefreshSession,
     authenticatePlayerSession,
     getPlayerSession,
+    bindPlayerSocket,
+    markPlayerDisconnected,
     closePlayerSession,
   };
 };
@@ -177,5 +215,7 @@ export const {
   createOrRefreshSession,
   authenticatePlayerSession,
   getPlayerSession,
+  bindPlayerSocket,
+  markPlayerDisconnected,
   closePlayerSession,
 } = createPlayerSessionService();

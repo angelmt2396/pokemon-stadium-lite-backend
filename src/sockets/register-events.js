@@ -2,6 +2,7 @@ import { createSocketSessionAuthMiddleware } from '../shared/auth/session-auth.j
 import { pauseBattleForDisconnect, finishBattleByDisconnectTimeout } from '../modules/battle/services/battle.service.js';
 import { createBattleSocketHandlers, registerBattleSocketHandlers } from '../modules/battle/socket/battle.socket.js';
 import { createLobbySocketHandlers, registerLobbySocketHandlers } from '../modules/lobby/socket/lobby.socket.js';
+import { bindPlayerSocket, markPlayerDisconnected } from '../modules/players/services/player-session.service.js';
 import { SOCKET_EVENTS } from '../shared/constants/socket-events.js';
 import { logger } from '../shared/logger/logger.js';
 
@@ -42,6 +43,9 @@ export const createSocketHandlersRegistrar = (dependencies = {}) => {
     createBattleSocketHandlers({
       processAttackDependency: dependencies.processAttackDependency,
     });
+  const bindPlayerSocketDependency = dependencies.bindPlayerSocketDependency ?? bindPlayerSocket;
+  const markPlayerDisconnectedDependency =
+    dependencies.markPlayerDisconnectedDependency ?? markPlayerDisconnected;
 
   return (io) => {
     io.use(authenticateSocket);
@@ -51,6 +55,21 @@ export const createSocketHandlersRegistrar = (dependencies = {}) => {
         socketId: socket.id,
         playerId: socket.data.player?.playerId ?? null,
       });
+
+      void (async () => {
+        try {
+          await bindPlayerSocketDependency({
+            playerId: socket.data.player?.playerId ?? null,
+            socketId: socket.id,
+          });
+        } catch (error) {
+          logger.error('socket_bind_player_failed', {
+            socketId: socket.id,
+            playerId: socket.data.player?.playerId ?? null,
+            error: error instanceof Error ? error.message : 'unknown_error',
+          });
+        }
+      })();
 
       socket.on('disconnect', (reason) => {
         logger.info('socket_disconnected', {
@@ -71,6 +90,10 @@ export const createSocketHandlersRegistrar = (dependencies = {}) => {
             });
 
             if (!pausedBattle) {
+              await markPlayerDisconnectedDependency({
+                playerId: socket.data.player?.playerId ?? null,
+                socketId: socket.id,
+              });
               return;
             }
 
